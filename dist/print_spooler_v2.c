@@ -5,20 +5,22 @@
  * ============================================================
  *
  * สิ่งที่เพิ่มจากเวอร์ชันแรก (Next steps ที่แจ้งอาจารย์ไว้):
- *   1) Aging mechanism  : งานที่รอนานจะได้ "effective priority" เพิ่มขึ้น
- *                         เพื่อป้องกัน starvation (งาน priority ต่ำถูกแซงตลอด)
+ *   1) Aging mechanism  : งานที่รอนานจะได้ "effective priority" ลดลง
+ *                         เลขน้อยสำคัญกว่า ช่วยป้องกัน starvation
  *   2) Multiple printers: รองรับเครื่องพิมพ์หลายตัว (1-4) ดึงงานจากคิวเดียวกัน
  *   3) Wait-time stats  : เก็บสถิติเวลารอของแต่ละงาน สรุปเมื่อจบโปรแกรม
  *                         (เฉลี่ย / สูงสุด / แยกตาม priority / แยกตามเครื่องพิมพ์)
  *
  * การเปลี่ยนแปลงของโครงสร้างคิว:
- *   เดิม  : insertion sort ตอน enqueue -> หัวคิวคือ priority สูงสุดเสมอ
- *   ใหม่  : คิวไม่เรียง, ตอน dequeue "สแกนหางานที่ effective priority สูงสุด"
+ *   เดิม  : insertion sort ตอน enqueue -> หัวคิวคืองานสำคัญที่สุด
+ *   ใหม่  : คิวไม่เรียง, ตอน dequeue "สแกนหางานที่ effective priority น้อยที่สุด"
  *           เพราะ effective priority เปลี่ยนตามเวลา จึงเรียงล่วงหน้าไม่ได้
  *           (คิวมีแค่ 10 ช่อง การสแกนจึงถูกมาก)
  *
- *   effective_priority = priority + (เวลารอเป็น ms / AGING_INTERVAL_MS)
- *   เช่น งาน priority 1 รอครบ 2 วินาที (interval=2000) จะเท่ากับ priority 2
+ *   effective_priority = priority - (เวลารอเป็น ms / AGING_INTERVAL_MS)
+ *   เช่น งาน priority 5 รอครบ 2 วินาที (interval=2000) จะมี effective priority 4
+ *   effective priority ลดลงถึง 0 หรือติดลบได้ โดย priority เดิมยังเป็น 1-5
+ *   งาน SHUTDOWN มี id=-1 และ effective priority=INT_MAX เพื่อถูกเลือกหลังงานจริง
  *   ถ้า effective เท่ากัน -> งานที่เข้าคิวก่อนได้ก่อน (FIFO)
  *
  * Semaphore ที่ใช้ (4 ตัว):
@@ -40,6 +42,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 #include <stdarg.h>
 #include <unistd.h>
@@ -58,13 +61,13 @@
 #define MAX_PRINTERS        4
 #define MAX_PRIORITY        5
 #define SENTINEL_PRIORITY   (-1)
-#define AGING_INTERVAL_MS   2000   /* รอทุกๆ 2 วินาที ได้ priority +1 */
+#define AGING_INTERVAL_MS   2000   /* รอทุกๆ 2 วินาที ลด effective priority ลง 1 */
 #define MS_PER_PAGE         200    /* เวลาพิมพ์ต่อหน้า (ms) */
 #define LOG_FILE            "spooler_log.txt"
 
 typedef struct {
     int       id;
-    int       priority;       /* 1 (ต่ำสุด) - 5 (สูงสุด) */
+    int       priority;       /* 1 (สำคัญที่สุด) - 5 (สำคัญน้อยที่สุด) */
     int       pages;
     char      filename[64];
     long long enqueue_ms;     /* เวลาที่เข้าคิว (ใช้คำนวณ waiting time + aging) */
@@ -131,10 +134,10 @@ static void log_line(const char *fmt, ...) {
 
 /* ----------------------- Aging: คำนวณ effective priority ----------------------- */
 static int effective_priority(const SharedQueue *q, const Job *j, long long now) {
-    if (j->priority == SENTINEL_PRIORITY) return SENTINEL_PRIORITY; /* sentinel ไม่ aging */
+    if (j->id == -1) return INT_MAX; /* SHUTDOWN ไม่ aging และถูกเลือกหลังงานจริง */
     int eff = j->priority;
     if (q->aging_enabled) {
-        eff += (int)((now - j->enqueue_ms) / AGING_INTERVAL_MS);
+        eff -= (int)((now - j->enqueue_ms) / AGING_INTERVAL_MS);
     }
     return eff;
 }
@@ -161,12 +164,12 @@ static Job dequeue(SharedQueue *q, int *out_eff, long long *out_wait) {
 
     long long now = now_ms();
 
-    /* สแกนหางานที่ effective priority สูงสุด; เท่ากันเลือกงานที่เข้าคิวก่อน (FIFO) */
+    /* สแกนหางานที่ effective priority น้อยที่สุด; เท่ากันเลือกงานที่เข้าคิวก่อน */
     int best = 0;
     int best_eff = effective_priority(q, &q->jobs[0], now);
     for (int i = 1; i < q->count; i++) {
         int e = effective_priority(q, &q->jobs[i], now);
-        if (e > best_eff ||
+        if (e < best_eff ||
             (e == best_eff && q->jobs[i].enqueue_ms < q->jobs[best].enqueue_ms)) {
             best = i;
             best_eff = e;
@@ -193,7 +196,7 @@ static void record_stats(SharedQueue *q, int printer_id, const Job *job,
     s->jobs_done++;
     s->total_wait_ms += wait_ms;
     if (wait_ms > s->max_wait_ms) s->max_wait_ms = wait_ms;
-    if (eff > job->priority) s->aged_jobs++;
+    if (eff < job->priority) s->aged_jobs++;
     s->prio_count[job->priority]++;
     s->prio_wait_ms[job->priority] += wait_ms;
     if (wait_ms > s->prio_max_ms[job->priority]) s->prio_max_ms[job->priority] = wait_ms;
@@ -230,12 +233,12 @@ static void run_printer(SharedQueue *q, int printer_id) {
         long long wait_ms;
         Job job = dequeue(q, &eff, &wait_ms);
 
-        if (job.priority == SENTINEL_PRIORITY) {
+        if (job.id == -1) {
             log_line("[PRINTER %d] ได้รับสัญญาณปิดระบบ หยุดทำงาน", printer_id);
             break;
         }
 
-        if (eff > job.priority) {
+        if (eff < job.priority) {
             log_line("[PRINTER %d] เริ่มพิมพ์ #%-3d '%s' (priority=%d -> aged=%d, %d หน้า, รอมา %lld ms) *AGED*",
                      printer_id, job.id, job.filename, job.priority, eff, job.pages, wait_ms);
         } else {
@@ -268,7 +271,7 @@ static void print_report(const SharedQueue *q, int num_printers, long long elaps
 
     printf("\n-- เวลารอแยกตาม priority --\n");
     printf("priority | จำนวนงาน | รอเฉลี่ย(s) | รอสูงสุด(s)\n");
-    for (int p = MAX_PRIORITY; p >= 1; p--) {
+    for (int p = 1; p <= MAX_PRIORITY; p++) {
         if (s->prio_count[p] == 0) {
             printf("   %d     |    0     |      -      |      -\n", p);
         } else {

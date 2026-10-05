@@ -2,13 +2,13 @@ export const CAPACITY = 10;
 export const AGING_MS = 2000;
 export const PAGE_MS = 200;
 export function effective(job, now, aging) {
-  return job.priority === -1 ? -1 : job.priority + (aging ? Math.floor((now-job.enqueue)/AGING_MS) : 0);
+  return job.id === -1 ? Infinity : job.priority - (aging ? Math.floor((now-job.enqueue)/AGING_MS) : 0);
 }
 export function bestIndex(queue, now, aging) {
   let best = 0;
   for (let i=1;i<queue.length;i++) {
     const a=effective(queue[i],now,aging), b=effective(queue[best],now,aging);
-    if (a>b || (a===b && queue[i].enqueue<queue[best].enqueue)) best=i;
+    if (a<b || (a===b && queue[i].enqueue<queue[best].enqueue)) best=i;
   }
   return best;
 }
@@ -56,10 +56,10 @@ export class Spooler {
         if (p.job || p.stopped || !this.queue.length) continue;
         const index=bestIndex(this.queue,this.now,this.aging), job=this.queue[index];
         this.queue[index]=this.queue[this.queue.length-1];this.queue.pop();changed=true;
-        if (job.priority===-1) {p.stopped=true;this.log('system',`เครื่อง ${p.id} รับ SHUTDOWN และหยุดทำงาน`);continue;}
+        if (job.id===-1) {p.stopped=true;this.log('system',`เครื่อง ${p.id} รับ SHUTDOWN และหยุดทำงาน`);continue;}
         const dispatched={...job,wait:this.now-job.enqueue,eff:effective(job,this.now,this.aging),printer:p.id,start:this.now};
         this.dispatched.push(dispatched);p.job=dispatched;p.until=this.now+job.pages*PAGE_MS;
-        this.log('print',`เครื่อง ${p.id} เลือก #${job.id} · P${job.priority}${dispatched.eff>job.priority?' → '+dispatched.eff+' (Aging)':''} · รอ ${dispatched.wait} ms`,job);
+        this.log('print',`เครื่อง ${p.id} เลือก #${job.id} · P${job.priority}${dispatched.eff<job.priority?' → '+dispatched.eff+' (Aging)':''} · รอ ${dispatched.wait} ms`,job);
       }
     } while(changed);
     if(this.printers.every(p=>p.stopped)) {this.done=true;this.log('system','MAIN: Printer จบครบ สรุปสถิติและคืนทรัพยากร');}
@@ -83,6 +83,6 @@ export class Spooler {
   }
   get stats() {
     const jobs=this.dispatched;
-    return {started:jobs.length,completed:this.completed.length,average:jobs.length?jobs.reduce((s,j)=>s+j.wait,0)/jobs.length:0,max:Math.max(0,...jobs.map(j=>j.wait)),aged:jobs.filter(j=>j.eff>j.priority).length,pages:this.completed.reduce((s,j)=>s+j.pages,0)};
+    return {started:jobs.length,completed:this.completed.length,average:jobs.length?jobs.reduce((s,j)=>s+j.wait,0)/jobs.length:0,max:Math.max(0,...jobs.map(j=>j.wait)),aged:jobs.filter(j=>j.eff<j.priority).length,pages:this.completed.reduce((s,j)=>s+j.pages,0)};
   }
 }
