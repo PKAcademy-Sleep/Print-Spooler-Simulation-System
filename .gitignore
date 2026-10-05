@@ -1,5 +1,6 @@
 .sites-runtime/
 .openai/
+.agents/
 *.zip
 node_modules/
 PKAcademy-Sleep/
