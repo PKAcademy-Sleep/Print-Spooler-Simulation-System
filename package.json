@@ -1,1 +1,21 @@
-{"name":"spooler-lab","private":true,"type":"module","scripts":{"start":"node server.mjs","test":"node --test tests/engine.test.mjs","check":"node --check dist/app.mjs && node --check dist/engine.mjs"}}
+{
+  "name": "spooler-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "build": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
+    "dev:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --watch",
+    "test": "node --test tests/engine.test.mjs",
+    "check": "node --check dist/app.mjs && node --check dist/engine.mjs && node --check dist/guide.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.0.3",
+    "tailwindcss": "^4.0.3"
+  },
+  "overrides": {
+    "@tailwindcss/cli": {
+      "@parcel/watcher": "2.6.0"
+    }
+  }
+}
