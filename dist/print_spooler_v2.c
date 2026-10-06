@@ -71,6 +71,7 @@ typedef struct {
     int       pages;
     char      filename[64];
     long long enqueue_ms;     /* เวลาที่เข้าคิว (ใช้คำนวณ waiting time + aging) */
+    long long enqueue_seq;    /* ลำดับเข้าคิว (นับขึ้นเรื่อยๆ) ใช้ตัดสินเมื่อ enqueue_ms เท่ากัน -> FIFO จริง */
 } Job;
 
 /* สถิติรวม อยู่ใน shared memory เพราะ printer หลาย process ช่วยกันเขียน */
@@ -90,6 +91,7 @@ typedef struct {
     Job   jobs[QUEUE_CAPACITY];
     int   count;
     int   aging_enabled;
+    long long next_seq;       /* ตัวนับลำดับเข้าคิว (แก้ไขภายใต้ mutex) */
     Stats stats;
     sem_t mutex;
     sem_t empty_slots;
@@ -149,6 +151,7 @@ static void enqueue(SharedQueue *q, Job job) {
     sem_wait(&q->mutex);
 
     job.enqueue_ms = now_ms();          /* ประทับเวลาเข้าคิว */
+    job.enqueue_seq = q->next_seq++;    /* ประทับลำดับเข้าคิว */
     q->jobs[q->count++] = job;          /* คิวไม่เรียงแล้ว ต่อท้ายได้เลย */
 
     sem_post(&q->mutex);
@@ -164,13 +167,17 @@ static Job dequeue(SharedQueue *q, int *out_eff, long long *out_wait) {
 
     long long now = now_ms();
 
-    /* สแกนหางานที่ effective priority น้อยที่สุด; เท่ากันเลือกงานที่เข้าคิวก่อน */
+    /* สแกนหางานที่ effective priority น้อยที่สุด; เท่ากันเลือกงานที่เข้าคิวก่อน
+       (เทียบ enqueue_ms ก่อน ถ้าเท่ากันถึงมิลลิวินาทีให้เทียบ enqueue_seq) */
     int best = 0;
     int best_eff = effective_priority(q, &q->jobs[0], now);
     for (int i = 1; i < q->count; i++) {
         int e = effective_priority(q, &q->jobs[i], now);
         if (e < best_eff ||
-            (e == best_eff && q->jobs[i].enqueue_ms < q->jobs[best].enqueue_ms)) {
+            (e == best_eff &&
+             (q->jobs[i].enqueue_ms < q->jobs[best].enqueue_ms ||
+              (q->jobs[i].enqueue_ms == q->jobs[best].enqueue_ms &&
+               q->jobs[i].enqueue_seq < q->jobs[best].enqueue_seq)))) {
             best = i;
             best_eff = e;
         }

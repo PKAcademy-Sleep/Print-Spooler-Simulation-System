@@ -4,11 +4,15 @@ export const PAGE_MS = 200;
 export function effective(job, now, aging) {
   return job.id === -1 ? Infinity : job.priority - (aging ? Math.floor((now-job.enqueue)/AGING_MS) : 0);
 }
+// Tie-break: earlier enqueue time wins; if the timestamps match to the ms, the lower arrival sequence wins (true FIFO).
+function olderThan(x, y) {
+  return x.enqueue<y.enqueue || (x.enqueue===y.enqueue && (x.enqueueSequence??0)<(y.enqueueSequence??0));
+}
 export function bestIndex(queue, now, aging) {
   let best = 0;
   for (let i=1;i<queue.length;i++) {
     const a=effective(queue[i],now,aging), b=effective(queue[best],now,aging);
-    if (a<b || (a===b && queue[i].enqueue<queue[best].enqueue)) best=i;
+    if (a<b || (a===b && olderThan(queue[i],queue[best]))) best=i;
   }
   return best;
 }
