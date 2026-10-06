@@ -1,4 +1,4 @@
-import {Spooler,effective,bestIndex} from './engine.mjs';
+import {Spooler,effective,arrivalOrder,selectionOrder} from './engine.mjs';
 import {mountGuide} from './guide.mjs';
 mountGuide();
 const $=id=>document.getElementById(id);
@@ -18,8 +18,9 @@ function render(){
  $('stats').innerHTML=[['งานพิมพ์เสร็จ',s.completed,'/ 20 งาน',`เริ่มพิมพ์แล้ว ${s.started} งาน`,'▤'],['เวลารอเฉลี่ย',sec(s.average),'วินาที','นับตั้งแต่เข้าคิวจนเริ่มพิมพ์','◷'],['เวลารอสูงสุด',sec(s.max),'วินาที','จากงานที่เริ่มพิมพ์แล้ว','◴'],['งานที่ได้รับ Aging',s.aged,'งาน',sim.aging?'effective priority น้อยกว่าค่าเดิม':'ปิดการเพิ่มระดับตามเวลารอ','↗']].map(([label,value,unit,foot,icon])=>`<article class="stat"><span class="stat-symbol">${icon}</span><div class="stat-label">${label}</div><div class="stat-value">${value}<small>${unit}</small></div><div class="stat-foot">${foot}</div></article>`).join('');
  $('producers').innerHTML=sim.producers.map(p=>`<div class="producer ${p.blocked?'blocked':''}"><span class="producer-icon">P${p.id}</span><div><strong>Producer ${p.id}</strong><small>${p.done?'จบการทำงาน':p.blocked?'รอช่องว่าง':`ส่งแล้ว ${p.index} / 5`}</small></div></div>`).join('');
  $('queue-count').textContent=`${sim.queue.length} / 10`;
- $('slots').innerHTML=Array.from({length:10},(_,i)=>{const j=sim.queue[i];return `<div class="slot ${j?'filled':''} ${j&&j.id!==-1&&effective(j,sim.now,sim.aging)<j.priority?'aged':''} ${j?.id===-1?'sentinel':''}" title="ช่องอาร์เรย์ ${i}${j?' · '+j.filename:''}">${j?j.id===-1?'STOP':'#'+j.id:String(i+1).padStart(2,'0')}</div>`;}).join('');
- const ordered=[],copy=[...sim.queue];while(copy.length){const i=bestIndex(copy,sim.now,sim.aging);ordered.push(copy.splice(i,1)[0]);}
+ const arrivals=arrivalOrder(sim.queue);
+ $('slots').innerHTML=Array.from({length:10},(_,i)=>{const j=arrivals[i];return `<div class="slot ${j?'filled':''} ${j&&j.id!==-1&&effective(j,sim.now,sim.aging)<j.priority?'aged':''} ${j?.id===-1?'sentinel':''}" title="${j?'เข้าคิวลำดับที่ '+(j.enqueueSequence+1)+' · เวลา '+sec(j.enqueue)+' s · '+j.filename:'ช่องว่าง'}">${j?j.id===-1?'STOP':'#'+j.id:String(i+1).padStart(2,'0')}</div>`;}).join('');
+ const ordered=selectionOrder(sim.queue,sim.now,sim.aging);
  $('queue-rows').innerHTML=ordered.map((j,i)=>{const eff=effective(j,sim.now,sim.aging);return `<tr><td><div class="job-name"><span class="job-id">${j.id===-1?'−1':'#'+j.id}</span><div><strong>${j.filename}</strong><small>${j.id===-1?'สัญญาณปิดเครื่อง':'Producer '+j.producer}</small></div></div></td><td>${j.pages}</td><td><span class="priority-pill ${eff<j.priority?'aging-pill':''}">${j.id===-1?'STOP':j.priority}${j.id!==-1&&eff<j.priority?' → '+eff:''}</span></td><td>${sec(sim.now-j.enqueue)} s</td><td><span class="next-tag">${i===0?'ถัดไป':'รอคิว'}</span></td></tr>`;}).join('');
  $('queue-empty').hidden=!!sim.queue.length;
  $('queue-empty').querySelector('strong').textContent=sim.done?'ทุกงานผ่านคิวเรียบร้อย':sim.started?'ไม่มีงานรอในคิว':'คิวว่าง พร้อมรับงาน';
