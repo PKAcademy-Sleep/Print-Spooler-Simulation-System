@@ -4,11 +4,11 @@ import {Spooler,effective,bestIndex,arrivalOrder,selectionOrder} from '../dist/e
 test('arrival order restores the entered queue after swap-last removal without changing dispatch',()=>{
  const sim=new Spooler({seed:42});sim.advance(400);
  const queueBefore=sim.queue.slice(),dispatchedBefore=sim.dispatched.slice();
- assert.deepEqual(sim.queue.map(j=>j.id),[100,401,300,101]);
- assert.deepEqual(sim.dispatched.map(j=>j.id),[200,400]);
+ assert.deepEqual(sim.queue.map(j=>j.id),[100,400,401,101]);
+ assert.deepEqual(sim.dispatched.map(j=>j.id),[200,300]);
  const ordered=arrivalOrder(sim.queue);
  assert.notEqual(ordered,sim.queue);
- assert.deepEqual(ordered.map(j=>j.id),[100,300,101,401]);
+ assert.deepEqual(ordered.map(j=>j.id),[100,400,101,401]);
  assert.deepEqual(sim.queue,queueBefore);
  assert.deepEqual(sim.dispatched,dispatchedBefore);
 });
@@ -25,12 +25,12 @@ test('arrival order uses enqueue sequence for equal times rather than job IDs or
  assert.deepEqual(queue,before);
  assert.deepEqual(arrivalOrder([{id:1,enqueue:0},{id:2,enqueue:0,enqueueSequence:1}]).map(j=>j.id),[1,2]);
 });
-test('selection preview preserves swap-last exact ties rather than arrival sequence and does not mutate the queue',()=>{
+test('selection preview preserves FIFO sequences through swap-last exact ties without mutating the queue',()=>{
  const queue=[11,22,33].map((id,enqueueSequence)=>({id,priority:3,enqueue:0,enqueueSequence}));
  const before=structuredClone(queue);
  const ordered=selectionOrder(queue,0,true);
  assert.notEqual(ordered,queue);
- assert.deepEqual(ordered.map(j=>j.id),[11,33,22]);
+ assert.deepEqual(ordered.map(j=>j.id),[11,22,33]);
  assert.deepEqual(queue,before);
  assert.deepEqual(arrivalOrder(queue).map(j=>j.id),[11,22,33]);
 });
@@ -46,6 +46,40 @@ test('selection preview honors aged priority, older timestamps and shutdown afte
  assert.deepEqual(selectionOrder(queue,8000,false).map(j=>j.id),[102,101,105,-1]);
  assert.deepEqual(queue,before);
 });
+test('aging run matches the displayed base-priority wait groups and completes every job',()=>{
+ const sim=new Spooler({printers:1,aging:true,seed:42});
+ for(let ticks=0;!sim.done&&ticks<500;ticks++)sim.step();
+ assert.equal(sim.done,true);
+ assert.equal(sim.stats.completed,20);assert.equal(sim.stats.started,20);
+ assert.equal(sim.stats.pages,100);assert.equal(sim.stats.aged,16);
+ const groups=[1,2,3,4,5].map(priority=>{
+  const jobs=sim.dispatched.filter(job=>job.priority===priority);
+  return {priority,count:jobs.length,total:jobs.reduce((sum,job)=>sum+job.wait,0),max:Math.max(...jobs.map(job=>job.wait))};
+ });
+ assert.deepEqual(groups,[
+  {priority:1,count:6,total:8200,max:2600},
+  {priority:2,count:4,total:12013,max:3277},
+  {priority:3,count:2,total:12277,max:6160},
+  {priority:4,count:2,total:24000,max:12000},
+  {priority:5,count:6,total:69152,max:15200},
+ ]);
+ assert.deepEqual(groups.map(group=>(group.total/group.count/1000).toFixed(2)),['1.37','3.00','6.14','12.00','11.53']);
+ // Base P5 can be selected before base P4 after aging; the graph still groups by the unchanged base priority.
+ const agedP5=sim.dispatched.find(job=>job.id===401),laterP4=sim.dispatched.find(job=>job.id===104);
+ assert.equal(agedP5.priority,5);assert.equal(agedP5.start,8400);assert.equal(agedP5.eff,1);
+ assert.equal(laterP4.priority,4);assert.equal(effective(laterP4,8400,true),2);
+ assert.ok(agedP5.start<laterP4.start);
+});
+test('effective priority selects an older P5 over a newer P4 while their base priorities stay unchanged',()=>{
+ const queue=[
+  {id:104,priority:4,enqueue:2800,enqueueSequence:10},
+  {id:401,priority:5,enqueue:337,enqueueSequence:5},
+ ];
+ const before=structuredClone(queue);
+ assert.equal(effective(queue[0],8400,true),2);assert.equal(effective(queue[1],8400,true),1);
+ assert.equal(bestIndex(queue,8400,true),1);assert.equal(bestIndex(queue,8400,false),0);
+ assert.deepEqual(queue,before);
+});
 test('aging boundaries, unbounded priority and sentinel immunity',()=>{
  const job={priority:1,enqueue:0};
  assert.equal(effective(job,1999,true),1);assert.equal(effective(job,2000,true),0);
@@ -54,7 +88,7 @@ test('aging boundaries, unbounded priority and sentinel immunity',()=>{
  assert.equal(effective({id:-1,priority:-1,enqueue:0},100000,true),Infinity);
  assert.equal(effective({id:-1,priority:-1,enqueue:0},100000,false),Infinity);
 });
-test('selection honors effective priority, older timestamps and exact-tie array order',()=>{
+test('selection honors effective priority, older timestamps and legacy exact ties without sequences',()=>{
  const queue=[{id:101,priority:1,enqueue:8000},{id:102,priority:5,enqueue:0},{id:-1,priority:-1,enqueue:0}];
  assert.equal(bestIndex(queue,8000,true),1);assert.equal(bestIndex(queue,8000,false),0);
  assert.equal(bestIndex([{priority:3,enqueue:0},{priority:3,enqueue:0}],0,true),0);

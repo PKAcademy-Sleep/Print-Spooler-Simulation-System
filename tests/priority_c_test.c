@@ -124,12 +124,22 @@ static void test_negative_effective_jobs_precede_sentinel(void) {
     fixture_destroy(&q);
 }
 
-static void test_exact_tie_keeps_array_order(void) {
+static void test_exact_tie_uses_fifo_sequence_after_swap_last(void) {
     SharedQueue q;
     frozen_now_ms = 4000;
-    Job jobs[] = {make_job(201, 3, 2000, 1), make_job(202, 3, 2000, 1)};
-    fixture_init(&q, 1, jobs, 2);
-    expect_dequeue(&q, 201, 2, 2000);
+    /* IDs and storage positions deliberately disagree with arrival order. */
+    Job jobs[] = {make_job(301, 3, 2000, 1), make_job(205, 3, 2000, 1),
+                  make_job(104, 3, 2000, 1), make_job(202, 3, 2000, 1)};
+    jobs[0].enqueue_seq = 2;
+    jobs[1].enqueue_seq = 0;
+    jobs[2].enqueue_seq = 1;
+    jobs[3].enqueue_seq = 3;
+    fixture_init(&q, 1, jobs, 4);
+    expect_dequeue(&q, 205, 2, 2000);
+    /* Removing index 1 swaps the latest arrival into that earlier array position. */
+    assert(q.jobs[0].id == 301 && q.jobs[1].id == 202 && q.jobs[2].id == 104);
+    expect_dequeue(&q, 104, 2, 2000);
+    expect_dequeue(&q, 301, 2, 2000);
     expect_dequeue(&q, 202, 2, 2000);
     fixture_destroy(&q);
 }
@@ -186,7 +196,7 @@ int main(void) {
     test_lower_priority_wins();
     test_aging_tie_prefers_older_job();
     test_negative_effective_jobs_precede_sentinel();
-    test_exact_tie_keeps_array_order();
+    test_exact_tie_uses_fifo_sequence_after_swap_last();
     test_shutdown_only_queue();
     test_statistics_use_base_priority();
     puts("C priority regression tests: 7 passed");
