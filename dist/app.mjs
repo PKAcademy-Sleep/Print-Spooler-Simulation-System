@@ -11,7 +11,7 @@ function render(){
  $('clock').textContent=time(sim.now);
  $('run-status').textContent=sim.done?'จำลองเสร็จสิ้น':running?'กำลังทำงาน':sim.started?'หยุดชั่วคราว':'พร้อมทดลอง';
  $('run-status').classList.toggle('running',running);
- $('play').textContent=running?'Ⅱ หยุดชั่วคราว':sim.done?'✓ เสร็จสิ้น':sim.started?'▶ เล่นต่อ':'▶ เริ่มจำลอง';
+ $('play').textContent=running?'หยุดชั่วคราว':sim.done?'✓ เสร็จสิ้น':sim.started?'▶ เล่นต่อ':'▶ เริ่มจำลอง';
  $('play').disabled=sim.done;$('step').disabled=running||sim.done;
  $('printer-count').disabled=sim.started;$('aging').disabled=sim.started;
  $('aging-label').textContent=sim.aging?'เปิด':'ปิด';
