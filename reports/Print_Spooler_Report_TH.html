@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="รายงานภาษาไทยอธิบาย Print Spooler Simulation ทั้งโปรแกรม C และเว็บ พร้อมคำถามที่อาจารย์อาจถาม 37 ข้อและแนวคำตอบ">
+  <title>รายงาน Print Spooler Simulation</title>
+  <style>
+    :root { color-scheme: light; --ink: #17202d; --muted: #536171; --line: #d9dfe7; --accent: #2454a4; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
+    body { margin: 0; color: var(--ink); background: #edf0f4; font-family: Tahoma, 'Leelawadee UI', sans-serif; font-size: 16px; line-height: 1.85; }
+    a { color: var(--accent); text-underline-offset: .22em; }
+    a:hover { text-decoration-thickness: 2px; }
+    a:focus-visible, button:focus-visible, .table-scroll:focus-visible { outline: 3px solid #367bd7; outline-offset: 4px; }
+    .toolbar { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px max(20px, calc((100vw - 1060px) / 2)); background: #fff; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 1.5; }
+    .toolbar-actions { display: flex; gap: 18px; align-items: center; }
+    button { border: 1px solid #163b73; border-radius: 5px; padding: 9px 15px; background: #2454a4; color: #fff; font: inherit; cursor: pointer; }
+    button:hover { background: #183e7e; }
+    article { max-width: 1060px; margin: 32px auto 56px; padding: 60px 74px 70px; background: #fff; border: 1px solid var(--line); }
+    .report-header { text-align: center; padding: 8px 0 40px; margin-bottom: 36px; border-bottom: 2px solid #17202d; }
+    .eyebrow { color: var(--muted); font-size: 14px; letter-spacing: .08em; margin: 0 0 20px; }
+    h1, h2, h3, h4 { color: #101820; line-height: 1.6; font-weight: 700; }
+    h1 { font-size: 30px; margin: 0 auto 22px; max-width: 790px; }
+    .subtitle { font-size: 17px; margin: 0 0 16px; }
+    .date, .scope { color: var(--muted); font-size: 14px; margin: 7px 0 0; }
+    h2 { font-size: 23px; margin: 52px 0 20px; padding-bottom: 10px; border-bottom: 1px solid var(--line); scroll-margin-top: 5rem; }
+    h3 { font-size: 18px; margin: 30px 0 13px; }
+    h4.question { font-size: 16px; margin: 28px 0 8px; }
+    p { margin: 0 0 16px; }
+    li { margin: 5px 0; padding-left: 3px; }
+    ul, ol { padding-left: 28px; margin: 12px 0 24px; }
+    #front-2 + ol { columns: 2; column-gap: 36px; }
+    #front-2 + ol li { break-inside: avoid; margin: 5px 0 10px; }
+    code { font-family: Consolas, 'Courier New', monospace; font-size: .88em; overflow-wrap: anywhere; }
+    :not(pre) > code { padding: 1px 4px; background: #f0f3f7; border-radius: 3px; }
+    pre { margin: 18px 0 24px; padding: 17px 19px; border: 1px solid var(--line); background: #f7f8fa; overflow-x: auto; line-height: 1.65; tab-size: 4; }
+    pre code { overflow-wrap: normal; }
+    .table-scroll { margin: 24px 0 30px; overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.75; }
+    caption { text-align: left; color: var(--ink); font-weight: bold; padding: 0 0 10px; font-size: 15px; }
+    th, td { border: 1px solid #d9d9d9; text-align: left; vertical-align: top; padding: 9px 12px; }
+    th { font-weight: bold; background: #f1f3f6; }
+    td code { white-space: normal; }
+    footer { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 16px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 760px) {
+      body { font-size: 15px; }
+      .toolbar { padding: 10px 16px; }
+      .toolbar-label { display: none; }
+      .toolbar-actions { width: 100%; justify-content: space-between; gap: 10px; }
+      article { margin: 0; padding: 32px 20px 42px; border: 0; }
+      h1 { font-size: 25px; }
+      h2 { font-size: 21px; }
+      .report-header { padding-bottom: 28px; }
+      #front-2 + ol { columns: 1; }
+      th, td { padding: 8px; min-width: 90px; }
+      .table-scroll table { min-width: 500px; }
+      pre { padding: 12px; font-size: 13px; }
+    }
+    @media print {
+      @page { size: A4 portrait; margin: 20mm 17mm 19mm; }
+      html { scroll-behavior: auto; }
+      body { background: #fff; color: #000; font-size: 11pt; line-height: 1.7; }
+      .toolbar { display: none; }
+      article { max-width: none; margin: 0; padding: 0; border: 0; }
+      .report-header { padding: 8mm 0 9mm; margin: 0 0 8mm; }
+      h1 { font-size: 23pt; }
+      h2 { margin-top: 9mm; font-size: 16pt; }
+      h3 { font-size: 12.5pt; margin-top: 6mm; }
+      h4.question { font-size: 11pt; margin-top: 5mm; }
+      h1, h2, h3, h4, caption { break-after: avoid; }
+      p { orphans: 3; widows: 3; margin-bottom: 3.3mm; }
+      #chapter-1, #chapter-15 { break-before: page; }
+      #front-2 + ol { columns: 1; }
+      a { color: #000; text-decoration: none; }
+      .table-scroll { overflow: visible; margin: 5mm 0; }
+      table { font-size: 9.3pt; }
+      th, td { padding: 2mm 2.4mm; }
+      thead { display: table-header-group; }
+      tr { break-inside: avoid; }
+      th { background: #eee; print-color-adjust: exact; }
+      pre { white-space: pre-wrap; overflow: visible; font-size: 8.5pt; padding: 3mm; break-inside: avoid; }
+      pre code { overflow-wrap: anywhere; }
+      footer { font-size: 9pt; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="toolbar" aria-label="เครื่องมืออ่านรายงาน">
+    <span class="toolbar-label">Print Spooler Simulation · รายงานภาษาไทย</span>
+    <div class="toolbar-actions">
+      <a href="#front-2">สารบัญ</a>
+      <a href="#chapter-15">คำถามอาจารย์</a>
+      <a href="Print_Spooler_Report_TH.md" download>ต้นฉบับ Markdown</a>
+      <button type="button" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+    </div>
+  </nav>
+  <main><article>
+<header class="report-header"><p class="eyebrow">รายงานโครงการ</p><h1>รายงานโปรแกรมจำลองคิวงานพิมพ์ Print Spooler Simulation</h1><p class="subtitle">คำอธิบายโปรแกรมภาษา C และเว็บจำลอง พร้อมคำถามสำหรับเตรียมนำเสนอ</p><p class="date">วันที่จัดทำ 7 ตุลาคม 2569</p><p class="scope">โปรแกรม C · เว็บจำลอง · คำถามเตรียมนำเสนอ 37 ข้อ</p></header>
+<h2 id="front-1">บทคัดย่อ</h2>
+<p>Print Spooler Simulation เป็นโครงการสาธิตการประสานงานระหว่างกระบวนการตามปัญหา Producer–Consumer ผู้สร้างงานหลายตัวส่งงานไปยังคิวร่วมที่มีความจุจำกัด และเครื่องพิมพ์หลายตัวดึงงานไปทำ โปรแกรมภาษา C ใช้ process, POSIX shared memory และ semaphore จริง ส่วนเว็บใช้ JavaScript จำลองกติกาและเวลาเพื่อให้ผู้เรียนติดตามเหตุการณ์ได้ง่าย</p>
+<p>ระบบมี Producer 4 ตัว ตัวละ 5 งาน รวม 20 งาน คิวจุ 10 งาน และ Printer 1–4 ตัว การเลือกงานใช้ค่าความสำคัญที่ยิ่งน้อยยิ่งสำคัญ โดย P1 เป็นระดับเดิมที่สำคัญสูงสุด เมื่อเปิด Aging งานที่รอครบทุก 2 วินาทีจะมีค่าที่ใช้เลือกลดลง 1 หากค่าเท่ากันจะเลือกงานที่เข้าคิวก่อน โดยใช้เวลาและเลขลำดับเข้าคิวเป็นตัวตัดสิน</p>
+<p>ประเด็นหลักของโครงการคือการรักษาความถูกต้องของข้อมูลร่วม การรอคิวโดยไม่ขัดขวางอีกฝ่าย การแยกความสำคัญเดิมออกจากค่าหลัง Aging และการปิดกระบวนการให้ครบ รายงานอธิบายโค้ดปัจจุบันซึ่งมีเลขลำดับเข้าคิวสำหรับรักษา FIFO แม้เวลาเข้าตรงกันถึงมิลลิวินาที รวมทั้งอธิบายข้อจำกัดของสถิติและแบบจำลองเว็บ</p>
+<h2 id="front-2">สารบัญ</h2>
+<ol>
+<li><a href="#chapter-1">วัตถุประสงค์และขอบเขต</a></li>
+<li><a href="#chapter-2">สถาปัตยกรรมและค่าตั้งต้น</a></li>
+<li><a href="#chapter-3">โครงสร้างข้อมูล</a></li>
+<li><a href="#chapter-4">ลำดับการทำงานของโปรแกรม C</a></li>
+<li><a href="#chapter-5">Shared Memory และการสร้าง Process</a></li>
+<li><a href="#chapter-6">Semaphore และการป้องกันปัญหาคิว</a></li>
+<li><a href="#chapter-7">Priority และ Aging</a></li>
+<li><a href="#chapter-8">การเพิ่มและนำงานออกจากคิว</a></li>
+<li><a href="#chapter-9">ฟังก์ชันทั้งหมดของโปรแกรม C</a></li>
+<li><a href="#chapter-10">สถิติ เวลา และบันทึกเหตุการณ์</a></li>
+<li><a href="#chapter-11">การปิดระบบและคืนทรัพยากร</a></li>
+<li><a href="#chapter-12">สถาปัตยกรรมและการใช้เว็บจำลอง</a></li>
+<li><a href="#chapter-13">วิธีรันและแผนสาธิต</a></li>
+<li><a href="#chapter-14">ผลตรวจสอบและข้อจำกัด</a></li>
+<li><a href="#chapter-15">คำถามที่อาจารย์อาจถามพร้อมแนวคำตอบ</a></li>
+<li><a href="#chapter-16">บทสรุปและเอกสารอ้างอิง</a></li>
+</ol>
+<h2 id="chapter-1">1 วัตถุประสงค์และขอบเขต</h2>
+<p>โปรแกรมแสดงให้เห็นว่าผู้ส่งงานหลายคนและเครื่องพิมพ์หลายเครื่องใช้คิวเดียวกันได้อย่างไร โดยต้องควบคุมทั้งการเข้าถึงข้อมูลและจำนวนงานในคิว การใช้เพียงตัวแปรนับงานไม่เพียงพอเมื่อหลาย process อาจอ่านและเขียนค่าเดียวกันในเวลาใกล้กัน</p>
+<p>วัตถุประสงค์ของโครงการมีดังนี้</p>
+<ul>
+<li>ศึกษา Producer–Consumer ที่มีคิวจำกัดความจุ</li>
+<li>ใช้ shared memory ส่งต่อข้อมูลระหว่าง process</li>
+<li>ใช้ semaphore ป้องกัน race condition และรอเงื่อนไขคิวเต็มหรือคิวว่าง</li>
+<li>ทดลองกติกา Priority scheduling และ Aging</li>
+<li>เปรียบเทียบจำนวนเครื่องพิมพ์ เวลารอ และการกระจายงาน</li>
+<li>ใช้เว็บแสดงขั้นตอนและช่วยอธิบายความสัมพันธ์กับโค้ด C</li>
+</ul>
+<p>การพิมพ์ในโครงการเป็นการพักเวลาตามจำนวนหน้า ไม่ได้เปิดอ่านไฟล์เอกสารหรือส่งข้อมูลไปยังเครื่องพิมพ์จริง ชื่อไฟล์ เช่น <code>user3_doc0.txt</code> เป็นข้อมูลในโครงสร้างงาน เว็บก็ไม่ได้เรียกใช้โปรแกรม C อยู่เบื้องหลัง</p>
+<h2 id="chapter-2">2 สถาปัตยกรรมและค่าตั้งต้น</h2>
+<p>Parent process เตรียมทรัพยากรและสร้างลูกสองกลุ่ม Producer ทำหน้าที่สร้างงาน ส่วน Printer ทำหน้าที่รับงานจากคิวและจำลองการพิมพ์ ทั้งสองกลุ่มเข้าถึง SharedQueue เดียวกัน</p>
+<pre><code class="language-text">Parent main
+  | สร้าง SharedQueue และ semaphore ก่อน fork
+  |
+  +--&gt; Producer 1 ถึง 4 --&gt; SharedQueue ความจุ 10 --&gt; Printer 1 ถึง N
+  |                         งานและสถิติร่วม          N เท่ากับ 1 ถึง 4
+  |
+  +--&gt; รอ Producer จบ --&gt; ส่ง SHUTDOWN N งาน
+       --&gt; รอ Printer จบ --&gt; รายงานผล --&gt; คืนทรัพยากร
+</code></pre>
+<div class="table-scroll" tabindex="0"><table><caption>ตารางที่ 1 ค่าตั้งต้นของระบบ</caption>
+<thead>
+<tr>
+<th>รายการ</th>
+<th>ค่า</th>
+<th>ความหมาย</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NUM_PRODUCERS</code></td>
+<td>4</td>
+<td>จำนวนกระบวนการสร้างงาน</td>
+</tr>
+<tr>
+<td><code>JOBS_PER_PRODUCER</code></td>
+<td>5</td>
+<td>จำนวนงานต่อ Producer</td>
+</tr>
+<tr>
+<td>งานจริงทั้งหมด</td>
+<td>20</td>
+<td>ไม่รวมงานสั่งปิดระบบ</td>
+</tr>
+<tr>
+<td><code>QUEUE_CAPACITY</code></td>
+<td>10</td>
+<td>จำนวนงานที่รออยู่ในคิวได้พร้อมกัน</td>
+</tr>
+<tr>
+<td><code>MAX_PRINTERS</code></td>
+<td>4</td>
+<td>รองรับ Printer 1–4 ตัว</td>
+</tr>
+<tr>
+<td>Priority เดิม</td>
+<td>1–5</td>
+<td>เลขน้อยสำคัญกว่า</td>
+</tr>
+<tr>
+<td>จำนวนหน้า</td>
+<td>1–8</td>
+<td>สุ่มแยกต่อหนึ่งงาน</td>
+</tr>
+<tr>
+<td><code>AGING_INTERVAL_MS</code></td>
+<td>2000 ms</td>
+<td>ช่วงเวลาที่ทำให้ effective ลดลง 1</td>
+</tr>
+<tr>
+<td><code>MS_PER_PAGE</code></td>
+<td>200 ms</td>
+<td>เวลาจำลองพิมพ์ต่อหน้า</td>
+</tr>
+<tr>
+<td>ช่วงพัก Producer</td>
+<td>100–499 ms</td>
+<td>พักหลังส่งงานแต่ละครั้ง รวมครั้งสุดท้าย</td>
+</tr>
+<tr>
+<td>Shared memory name</td>
+<td><code>/print_spooler_shm_v2</code></td>
+<td>ชื่อพื้นที่ร่วมของโปรแกรม C</td>
+</tr>
+<tr>
+<td>Log file</td>
+<td><code>spooler_log.txt</code></td>
+<td>บันทึกเหตุการณ์ของโปรแกรม C</td>
+</tr>
+</tbody></table></div>
+<p>เมื่อทุกการสร้าง process สำเร็จ มี Parent 1 ตัว Producer 4 ตัว และ Printer N ตัว รวม <code>5 + N</code> process หรือ 6–9 process ในการทำงานหนึ่งรอบ โปรแกรมไม่ได้ใช้ <code>pthread_create()</code> สร้าง thread แม้จะเชื่อมไลบรารีที่ใช้รองรับ semaphore</p>
+<h2 id="chapter-3">3 โครงสร้างข้อมูล</h2>
+<h3 id="section-3-1">3.1 โครงสร้าง Job</h3>
+<p>Job แทนงานพิมพ์หนึ่งชิ้น โดยข้อมูลที่มีผลต่อการเลือกงานคือ Priority เดิม เวลาเข้าคิว และเลขลำดับเข้าคิว</p>
+<div class="table-scroll" tabindex="0"><table><caption>ตารางที่ 2 ข้อมูลใน Job ของโปรแกรม C</caption>
+<thead>
+<tr>
+<th>ฟิลด์</th>
+<th>ชนิดข้อมูล</th>
+<th>หน้าที่</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>id</code></td>
+<td><code>int</code></td>
+<td>รหัสงาน หรือ −1 สำหรับ SHUTDOWN</td>
+</tr>
+<tr>
+<td><code>priority</code></td>
+<td><code>int</code></td>
+<td>ความสำคัญเดิม 1–5</td>
+</tr>
+<tr>
+<td><code>pages</code></td>
+<td><code>int</code></td>
+<td>จำนวนหน้าที่ใช้คำนวณเวลาพิมพ์</td>
+</tr>
+<tr>
+<td><code>filename</code></td>
+<td><code>char[64]</code></td>
+<td>ชื่อไฟล์ประกอบงาน</td>
+</tr>
+<tr>
+<td><code>enqueue_ms</code></td>
+<td><code>long long</code></td>
+<td>เวลาเข้าคิวสำหรับคำนวณเวลารอและ Aging</td>
+</tr>
+<tr>
+<td><code>enqueue_seq</code></td>
+<td><code>long long</code></td>
+<td>ลำดับเข้าคิวสำหรับตัดสินเมื่อเวลาเท่ากัน</td>
+</tr>
+</tbody></table></div>
+<p>รหัสงานคำนวณจาก <code>producer_id * 100 + i</code> โดย <code>i</code> เริ่มจาก 0 ถึง 4 ดังนั้น Producer 1 มีงาน #100–104 และ Producer 4 มีงาน #400–404 ตัวอย่าง <code>#103</code> คือ Producer 1 งานที่ 4 ส่วน <code>#401</code> คือ Producer 4 งานที่ 2 รหัสนี้ใช้ระบุตัวงาน ไม่ได้บอก Priority หรือลำดับที่จะได้พิมพ์</p>
+<h3 id="section-3-2">3.2 โครงสร้าง Stats</h3>
+<p>Stats เก็บผลสะสมร่วมของ Printer ทุกตัว มีจำนวนงาน เวลารอรวม เวลารอสูงสุด จำนวนงานที่ได้รับ Aging อาร์เรย์แยกตาม Priority และอาร์เรย์แยกตามเครื่องพิมพ์</p>
+<p>ฟิลด์ <code>jobs_done</code>, <code>total_wait_ms</code>, <code>max_wait_ms</code> และ <code>aged_jobs</code> เป็นสถิติรวม ส่วน <code>prio_count</code>, <code>prio_wait_ms</code>, <code>prio_max_ms</code> จัดกลุ่มตาม Priority เดิม 1–5 โดยช่อง 0 ของอาร์เรย์ Priority ไม่ได้ใช้สำหรับงานจริง ฟิลด์ <code>printer_jobs</code> และ <code>printer_pages</code> เก็บงานกับจำนวนหน้าของแต่ละเครื่อง โดยเครื่องหมายเลข 1 ใช้อินเด็กซ์ 0</p>
+<p>ชื่อ <code>jobs_done</code> ต้องอธิบายตามตำแหน่งเรียกจริง เพราะโค้ดเพิ่มค่านี้ก่อนพักเวลาจำลองพิมพ์ จึงนับงานที่เริ่มพิมพ์ระหว่างรัน เมื่อ Parent รอ Printer จบครบในการจบปกติ ค่านี้จึงตรงกับงานที่เสร็จแล้ว ประเด็นนี้ต่างจากเว็บที่แยก started และ completed</p>
+<h3 id="section-3-3">3.3 โครงสร้าง SharedQueue</h3>
+<p>SharedQueue รวม <code>jobs[10]</code>, <code>count</code>, <code>aging_enabled</code>, <code>next_seq</code>, Stats และ semaphore 4 ตัวไว้ในพื้นที่ shared memory เดียวกัน ตัวนับ <code>count</code> คือจำนวนรายการที่รออยู่ในคิว ไม่รวมงานที่ Printer ดึงออกไปพิมพ์แล้ว แต่รวม SHUTDOWN ที่ยังอยู่ในคิว</p>
+<p><code>next_seq</code> เพิ่มภายใต้ mutex ทุกครั้งที่เข้าคิวสำเร็จ ทำให้แต่ละงานมีเลขลำดับไม่ซ้ำกัน ลำดับนี้หมายถึงการรับงานเข้าคิวสำเร็จ ไม่ใช่เวลาที่ Producer เริ่มเรียก enqueue ก่อนอาจถูกบล็อกเพราะคิวเต็ม</p>
+<h2 id="chapter-4">4 ลำดับการทำงานของโปรแกรม C</h2>
+<p>ฟังก์ชัน <code>main()</code> เป็นผู้จัดการวงจรชีวิตของระบบตามลำดับนี้</p>
+<ol>
+<li>ตั้ง stdout เป็นแบบไม่เก็บ buffer แล้วอ่านจำนวน Printer และตัวเลือก Aging ค่าเริ่มต้นคือ 1 เครื่องและเปิด Aging</li>
+<li>ตรวจจำนวน Printer ว่าอยู่ระหว่าง 1–4 แล้วลบ log เดิมและชื่อ shared memory เดิม</li>
+<li>สร้าง shared memory ปรับขนาด และ map เป็น SharedQueue</li>
+<li>กำหนดข้อมูลเริ่มต้นและสร้าง semaphore ทั้ง 4 ตัวให้ใช้ข้าม process ได้</li>
+<li>บันทึกเวลาเริ่ม แล้ว fork Producer 4 ตัว จากนั้น fork Printer ตามจำนวนที่เลือก</li>
+<li>รอ Producer ทั้งหมดจบด้วย <code>waitpid()</code> แล้วส่ง SHUTDOWN หนึ่งรายการต่อ Printer</li>
+<li>รอ Printer ทุกตัวจบ แล้วบันทึกเวลารวม</li>
+<li>อ่าน Stats และแสดงรายงาน</li>
+<li>ทำลาย semaphore, unmap พื้นที่ และ unlink ชื่อ shared memory</li>
+</ol>
+<p>ลูกที่ fork สำเร็จจะเข้าสู่ <code>run_producer()</code> หรือ <code>run_printer()</code> และจบด้วย <code>exit(0)</code> จึงไม่กลับมาวนสร้างลูกต่อใน main การรอด้วย waitpid ทีละ PID ไม่ได้ทำให้ลูกทำงานทีละตัว เพราะลูกทุกตัวที่สร้างไปแล้วสามารถทำงานพร้อมกันได้ตามการจัดสรรของระบบปฏิบัติการ</p>
+<h2 id="chapter-5">5 Shared Memory และการสร้าง Process</h2>
+<p>ตัวแปรธรรมดาหลัง fork โดยทั่วไปอยู่ใน address space ของแต่ละ process การแก้ตัวแปรในลูกจึงไม่ใช่วิธีส่งข้อมูลร่วมกลับให้ Parent โปรแกรมนี้สร้าง mapping แบบ <code>MAP_SHARED</code> ก่อน fork เพื่อให้ทุกลูกเข้าถึงข้อมูลร่วมเดียวกัน</p>
+<p>ขั้นแรก <code>shm_open()</code> สร้างวัตถุ POSIX shared memory และคืน file descriptor โปรแกรมใช้ <code>O_CREAT | O_EXCL | O_RDWR</code> เพื่อสร้างใหม่และเปิดอ่านเขียน จากนั้น <code>ftruncate()</code> กำหนดขนาดให้เท่ากับ <code>sizeof(SharedQueue)</code> เพราะวัตถุใหม่เริ่มจากขนาดศูนย์ แล้ว <code>mmap()</code> เชื่อมวัตถุเข้ากับ address space โดยอนุญาตอ่านเขียนและใช้ <code>MAP_SHARED</code> การปิด descriptor หลัง mmap ไม่ได้ยกเลิก mapping ที่สร้างแล้ว <a href="https://man7.org/linux/man-pages/man3/shm_open.3.html">Linux man-pages shm_open</a></p>
+<p>โปรแกรม initialize semaphore ในพื้นที่ร่วมก่อนสร้างลูก และส่งค่า <code>pshared=1</code> ให้ <code>sem_init()</code> เพื่อใช้งานระหว่าง process หากใช้ pshared เป็น 0 จะเป็นการใช้ระหว่าง thread ภายใน process เดียว ซึ่งไม่ตรงกับโครงสร้างของงานนี้ <a href="https://man7.org/linux/man-pages/man3/sem_init.3.html">Linux man-pages sem_init</a></p>
+<div class="table-scroll" tabindex="0"><table><caption>ตารางที่ 3 API สำคัญและบทบาทในโครงการ</caption>
+<thead>
+<tr>
+<th>API</th>
+<th>การใช้งานในโปรแกรม</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>shm_open</code> และ <code>ftruncate</code></td>
+<td>สร้างพื้นที่ร่วมและกำหนดขนาด</td>
+</tr>
+<tr>
+<td><code>mmap</code> และ <code>munmap</code></td>
+<td>เชื่อมและยกเลิก mapping ใน address space</td>
+</tr>
+<tr>
+<td><code>shm_unlink</code></td>
+<td>ลบชื่อของวัตถุ shared memory</td>
+</tr>
+<tr>
+<td><code>fork</code></td>
+<td>สร้าง Producer และ Printer เป็น process ลูก</td>
+</tr>
+<tr>
+<td><code>waitpid</code></td>
+<td>รอลูกที่ระบุให้จบและเก็บกวาด process โดยโค้ดนี้ไม่อ่าน exit status</td>
+</tr>
+<tr>
+<td><code>sem_init</code> และ <code>sem_destroy</code></td>
+<td>สร้างและทำลาย unnamed semaphore</td>
+</tr>
+<tr>
+<td><code>sem_wait</code> และ <code>sem_post</code></td>
+<td>ขอสิทธิ์และคืนสิทธิ์เข้าถึงทรัพยากร</td>
+</tr>
+<tr>
+<td><code>clock_gettime</code></td>
+<td>อ่านเวลาสำหรับเวลารอและเวลารวม</td>
+</tr>
+<tr>
+<td><code>usleep</code></td>
+<td>พักเพื่อจำลองช่วงมาถึงงานและการพิมพ์</td>
+</tr>
+<tr>
+<td><code>open</code> และ <code>write</code></td>
+<td>เปิด log และเขียนบันทึกแต่ละเหตุการณ์</td>
+</tr>
+<tr>
+<td><code>close</code></td>
+<td>ปิด file descriptor ที่ใช้งานเสร็จ</td>
+</tr>
+</tbody></table></div>
+<p>ควรเรียกตารางนี้ว่า API ระบบและไลบรารีที่ใช้ในโครงการ ไม่ควรเหมารวมว่า function call ทุกตัวเข้าสู่ kernel แบบเดียวกันทั้งหมด ฟังก์ชันมาตรฐาน C เช่น snprintf และ memset ก็มีบทบาทในโค้ด แต่ทำหน้าที่จัดรูปแบบข้อความและกำหนดค่าหน่วยความจำ</p>
+<h2 id="chapter-6">6 Semaphore และการป้องกันปัญหาคิว</h2>
+<p>Race condition เกิดได้เมื่อสอง process เห็น <code>count</code> ค่าเดียวกันแล้วเขียนงานลงตำแหน่งเดียว หรือเมื่อ Printer สองตัวเลือกและนำงานเดียวกันออก ดังนั้นการอ่านแก้คิวต้องอยู่ใน critical section ที่มี mutex คุม ขณะเดียวกันต้องมีตัวนับสิทธิ์แยกสำหรับคิวเต็มและคิวว่าง</p>
+<div class="table-scroll" tabindex="0"><table><caption>ตารางที่ 4 Semaphore ของระบบ</caption>
+<thead>
+<tr>
+<th>ชื่อ</th>
+<th>ค่าเริ่มต้น</th>
+<th>สิ่งที่ควบคุม</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mutex</code></td>
+<td>1</td>
+<td>ให้แก้ jobs, count และ next_seq ทีละ process</td>
+</tr>
+<tr>
+<td><code>empty_slots</code></td>
+<td>10</td>
+<td>จำนวนสิทธิ์เพิ่มงานในคิว</td>
+</tr>
+<tr>
+<td><code>filled_slots</code></td>
+<td>0</td>
+<td>จำนวนสิทธิ์นำงานออกจากคิว</td>
+</tr>
+<tr>
+<td><code>stats_lock</code></td>
+<td>1</td>
+<td>ให้ Printer แก้ Stats ทีละตัว</td>
+</tr>
+</tbody></table></div>
+<h3 id="section-6-1">6.1 ฝั่ง Producer</h3>
+<p>Producer รอ empty_slots ก่อน เมื่อได้สิทธิ์เพิ่มงานแล้วจึงขอ mutex ประทับเวลาและเลขลำดับ วางงานท้ายคิว และเพิ่ม count จากนั้นปล่อย mutex แล้ว post filled_slots เพื่อแจ้งว่ามีงานให้ Printer รับได้</p>
+<pre><code class="language-c">sem_wait(&amp;q-&gt;empty_slots);
+sem_wait(&amp;q-&gt;mutex);
+/* ประทับเวลาและ sequence แล้วต่อท้ายคิว */
+sem_post(&amp;q-&gt;mutex);
+sem_post(&amp;q-&gt;filled_slots);
+</code></pre>
+<h3 id="section-6-2">6.2 ฝั่ง Printer</h3>
+<p>Printer รอ filled_slots เพื่อยืนยันว่ามีสิทธิ์รับงาน แล้วจึงขอ mutex สแกนเลือกงาน นำงานออก และลด count จากนั้นปล่อย mutex แล้ว post empty_slots เพื่อคืนช่องให้ Producer การจำลองพิมพ์เกิดหลังออกจาก critical section แล้ว</p>
+<pre><code class="language-c">sem_wait(&amp;q-&gt;filled_slots);
+sem_wait(&amp;q-&gt;mutex);
+/* เลือกงานและนำออกจากคิว */
+sem_post(&amp;q-&gt;mutex);
+sem_post(&amp;q-&gt;empty_slots);
+</code></pre>
+<h3 id="section-6-3">6.3 เหตุผลที่ต้องรอเงื่อนไขก่อนจับ mutex</h3>
+<p>หาก Producer จับ mutex ก่อนแล้วค่อยรอ empty_slots ขณะคิวเต็ม มันจะถือ mutex รอช่องว่าง ขณะที่ Printer ต้องได้ mutex เพื่อเอางานออก ทั้งสองฝ่ายจึงรอกันและเกิด deadlock ได้ ฝั่ง Printer ก็มีปัญหาแบบเดียวกันหากถือ mutex แล้วรอคิวที่ว่างให้มีงาน</p>
+<p>การใช้ stats_lock แยกจาก queue mutex ทำให้การเก็บสถิติไม่ต้องล็อกคิวค้างไว้ และเวลาพิมพ์ก็ไม่อยู่ใต้ queue mutex จึงให้ Printer หลายตัวทำงานคนละชิ้นพร้อมกันได้</p>
+<p>หลังจบ operation ทั้งหมด ค่าที่มองเห็นจะสอดคล้องกับช่องว่างและงานในคิว แต่ระหว่างจอง token ก่อนปรับคิวหรือก่อน post คืน ค่า semaphore อาจยังไม่ตรงกับ count จึงไม่ควรกล่าวว่า <code>empty_slots + filled_slots = 10</code> ทุกขณะของการทำงานจริง เว็บแสดงภาพหลังเหตุการณ์และไม่ได้จำลองทุกช่วงย่อยเหล่านี้</p>
+<h2 id="chapter-7">7 Priority และ Aging</h2>
+<h3 id="section-7-1">7.1 ความสำคัญเดิมและค่าที่ใช้เลือก</h3>
+<p>Priority เดิมอยู่ระหว่าง 1–5 โดย P1 สำคัญที่สุดและ P5 สำคัญน้อยที่สุด เมื่อปิด Aging ค่า effective เท่ากับ Priority เดิม เมื่อเปิด Aging ใช้กติกาต่อไปนี้</p>
+<pre><code class="language-text">wait_ms = now_ms - enqueue_ms
+effective = priority - floor(wait_ms / 2000)
+</code></pre>
+<p>สำหรับเวลารอที่ไม่ติดลบ การหารจำนวนเต็มใน C ให้ผลแบบเดียวกับ floor ค่าจะลดลงครั้งละ 1 เมื่อรอครบอีก 2000 ms ดังนั้นงานเก่ามีโอกาสแข่งขันกับงานใหม่มากขึ้น โดยไม่ได้เปลี่ยน Priority เดิมที่เก็บไว้</p>
+<div class="table-scroll" tabindex="0"><table><caption>ตารางที่ 5 ตัวอย่างงานที่มี Priority เดิม P5 เมื่อเปิด Aging</caption>
+<thead>
+<tr>
+<th>เวลารอ</th>
+<th>จำนวนช่วงที่ครบ</th>
+<th>Effective</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0–1999 ms</td>
+<td>0</td>
+<td>5</td>
+</tr>
+<tr>
+<td>2000–3999 ms</td>
+<td>1</td>
+<td>4</td>
+</tr>
+<tr>
+<td>4000–5999 ms</td>
+<td>2</td>
+<td>3</td>
+</tr>
+<tr>
+<td>6000–7999 ms</td>
+<td>3</td>
+<td>2</td>
+</tr>
+<tr>
+<td>8000–9999 ms</td>
+<td>4</td>
+<td>1</td>
+</tr>
+<tr>
+<td>10000–11999 ms</td>
+<td>5</td>
+<td>0</td>
+</tr>
+</tbody></table></div>
+<p>โค้ดไม่จำกัดค่าต่ำสุด งานจริงจึงมี effective เป็นศูนย์หรือติดลบได้ เช่น P1 รอ 4000 ms ได้ effective −1 งานนี้ยังเป็นงานปกติ เพราะระบบแยก SHUTDOWN ด้วย ID ไม่ได้ตรวจจาก effective</p>
+<h3 id="section-7-2">7.2 ลำดับการตัดสินใจล่าสุด</h3>
+<p>ระบบเลือก effective ต่ำสุดก่อน ถ้าเท่ากันเลือก enqueue_ms ที่น้อยกว่า หากเวลาตรงกันถึงมิลลิวินาทีจึงเลือก enqueue_seq ที่น้อยกว่า หมายความว่า FIFO ใช้ตัดสินระหว่างงานที่มี effective เท่ากัน ไม่ใช่ว่าทุกงานต้องพิมพ์ตามเวลามาถึงโดยไม่สนใจ Priority</p>
+<p>ตัวอย่าง งาน A มี P5 และรอ 8 วินาที จะได้ effective 1 เท่ากับงาน B ที่เป็น P1 และเพิ่งเข้าคิว ระบบเลือก A เพราะ A เข้าคิวก่อน หากปิด Aging ระบบเลือก B เพราะ 1 น้อยกว่า 5</p>
+<p>เลขลำดับเข้าคิวถูกเพิ่มขณะถือ mutex จึงใช้รักษา FIFO ในกรณีเวลาเท่ากันได้ แม้การนำงานออกจะย้ายงานท้ายอาร์เรย์มาทับช่องที่ว่าง ตำแหน่งในอาร์เรย์ไม่ใช่ตัวตัดสินลำดับสุดท้ายของโค้ดปัจจุบัน</p>
+<h3 id="section-7-3">7.3 สิ่งที่ Aging รับรองไม่ได้จากผลรันครั้งเดียว</h3>
+<p>Aging มีเป้าหมายเพิ่มโอกาสให้งานที่รอนาน ไม่ใช่การหาค่าเฉลี่ยเวลารอต่ำสุด จึงไม่รับประกันว่าเปิดแล้วค่าเฉลี่ยของทุกชุดงานจะลดลง และ P1 ก็ไม่จำเป็นต้องมีค่าเฉลี่ยต่ำสุดทุกครั้ง เพราะเวลาที่งานมาถึง งานที่กำลังพิมพ์ และ Aging มีผลร่วมกัน</p>
+<p>โปรแกรมนี้มีงานเพียง 20 ชิ้นและเวลาพิมพ์จำกัด เมื่อระบบทำงานปกติ งานจึงระบายครบได้แม้ปิด Aging การทดลองนี้ช่วยเห็นกลไกลดการถูกแซง แต่ไม่ใช่ข้อพิสูจน์เรื่อง starvation สำหรับระบบที่มีงานใหม่เข้าตลอดไป</p>
+<p>Printer ทำงานแบบ non-preemptive เมื่อเริ่มงานแล้วจะพิมพ์ต่อจนจบ งานสำคัญกว่าที่เพิ่งมาไม่แทรกกลางงานที่กำลังพิมพ์</p>
+<h2 id="chapter-8">8 การเพิ่มและนำงานออกจากคิว</h2>
+<h3 id="section-8-1">8.1 การจัดเก็บและประสิทธิภาพ</h3>
+<p>enqueue ต่อท้าย <code>jobs[count++]</code> จึงใช้เวลา O(1) สำหรับการแก้อาร์เรย์เมื่อได้สิทธิ์แล้ว ส่วน dequeue ต้องสแกนงานทั้งหมดเพื่อหา effective ต่ำสุด ใช้ O(n) โดย n ไม่เกิน 10 หลังพบเป้าหมายจะนำงานท้ายสุดมาทับช่องของเป้าหมาย แล้วลด count จึงลบได้ O(1) โดยไม่เลื่อนงานทั้งหมด</p>
+<p>การเรียงคิวครั้งเดียวตอนรับเข้าไม่เพียงพอสำหรับการใช้ค่าหลัง Aging เพราะ effective เปลี่ยนตามเวลารอ การคำนวณตอน dequeue ทำให้ใช้ค่าปัจจุบันในการตัดสินใจ และต้นทุนสแกนเหมาะกับคิวขนาดเล็กของโครงการ</p>
+<h3 id="section-8-2">8.2 ตัวอย่างการสลับตำแหน่ง</h3>
+<p>สมมติอาร์เรย์เก็บ <code>[A, B, C, D]</code> และเลือก B ไปพิมพ์ โปรแกรมจะนำ D มาแทนช่องของ B เหลือ <code>[A, D, C]</code> แม้ C อาจเข้ามาก่อน D ก็ตาม การเก็บข้อมูลแบบนี้ยังเลือกงานได้ถูกต้อง เพราะการตัดสินใจพิจารณา Priority เวลา และ sequence ไม่ได้เลือกช่องซ้ายสุดเสมอ</p>
+<h3 id="section-8-3">8.3 มุมมองสองแบบบนเว็บ</h3>
+<p>แถวช่องด้านบนที่ชื่อ <strong>ลำดับเข้าคิว</strong> เรียงเฉพาะงานที่ยังรออยู่ตามเวลาและ sequence จากซ้ายไปขวา ส่วนตาราง <strong>ลำดับเลือกพิมพ์ ณ ตอนนี้</strong> ใช้ Priority/Aging และกติกานำงานออกบนสำเนาข้อมูล ทั้งสองมุมมองไม่เปลี่ยนคิวต้นฉบับ</p>
+<p>ตารางเลือกงานคำนวณด้วยเวลาปัจจุบันคงที่ จึงบอกอันดับ ณ ตอนนั้น ไม่ใช่คำรับประกันลำดับพิมพ์ทั้งหมดในอนาคต งานใหม่ที่เข้ามาและเวลารอที่เพิ่มขึ้นอาจเปลี่ยนผลการเลือกครั้งถัดไปได้</p>
+<p>ตัวอย่างจากเว็บรุ่นปัจจุบัน ใช้ seed 42, Printer 1 ตัว และเปิด Aging ที่เวลา 400 ms จะเริ่มพิมพ์ #300 แล้ว งานที่เหลือมีลำดับเข้าคิว <code>#100 → #400 → #101 → #401</code> ส่วนลำดับเลือก ณ ตอนนั้นคือ <code>#400 → #100 → #101 → #401</code> ตัวอย่างนี้เป็นผลของแบบจำลองเว็บ ไม่ใช่ log จากการสุ่มของ C</p>
+<h2 id="chapter-9">9 ฟังก์ชันทั้งหมดของโปรแกรม C</h2>
+<div class="table-scroll" tabindex="0"><table><caption>ตารางที่ 6 หน้าที่และความสัมพันธ์ของฟังก์ชัน</caption>
+<thead>
+<tr>
+<th>ฟังก์ชัน</th>
+<th>หน้าที่หลัก</th>
+<th>ผู้เรียกหรือข้อมูลที่เกี่ยวข้อง</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>now_ms</code></td>
+<td>อ่าน CLOCK_MONOTONIC แล้วแปลงเป็น ms</td>
+<td>ใช้ประทับเวลา คำนวณเวลารอ และเวลารวม</td>
+</tr>
+<tr>
+<td><code>log_line</code></td>
+<td>จัดข้อความพร้อมเวลาและ PID แล้วเขียน log กับ stdout</td>
+<td>Parent, Producer และ Printer</td>
+</tr>
+<tr>
+<td><code>effective_priority</code></td>
+<td>คำนวณ Priority หลัง Aging และแยก sentinel</td>
+<td>เรียกขณะ dequeue สแกนคิว</td>
+</tr>
+<tr>
+<td><code>enqueue</code></td>
+<td>รอช่อง ล็อก ประทับเวลาและ sequence แล้วต่อท้าย</td>
+<td>Producer และ Parent ที่ส่ง SHUTDOWN</td>
+</tr>
+<tr>
+<td><code>dequeue</code></td>
+<td>รอให้มีงาน เลือกตามกติกา แล้วนำออก</td>
+<td>Printer รับ Job พร้อม effective และ wait</td>
+</tr>
+<tr>
+<td><code>record_stats</code></td>
+<td>เพิ่มจำนวนงาน เวลา และสถิติแต่ละกลุ่ม</td>
+<td>Printer เรียกก่อนจำลองพิมพ์</td>
+</tr>
+<tr>
+<td><code>run_producer</code></td>
+<td>สุ่มและส่ง 5 งาน แล้วจบ process</td>
+<td>ลูกฝั่ง Producer</td>
+</tr>
+<tr>
+<td><code>run_printer</code></td>
+<td>รับงาน พิมพ์ หรือหยุดเมื่อรับ sentinel</td>
+<td>ลูกฝั่ง Printer</td>
+</tr>
+<tr>
+<td><code>print_report</code></td>
+<td>อ่านและพิมพ์สถิติหลังลูกจบครบ</td>
+<td>Parent</td>
+</tr>
+<tr>
+<td><code>main</code></td>
+<td>ตั้งระบบ สร้างลูก รอ ปิดระบบ และคืนทรัพยากร</td>
+<td>จุดเริ่มต้นของโปรแกรม</td>
+</tr>
+</tbody></table></div>
+<h3 id="section-9-1">9.1 เวลาและข้อความ</h3>
+<p><code>now_ms()</code> ใช้ CLOCK_MONOTONIC สำหรับวัดระยะเวลา แทนการนำเวลาปฏิทินมาใช้คำนวณ Aging จึงไม่กระโดดตามการตั้งเวลานาฬิกาปฏิทินโดยตรง ส่วน <code>log_line()</code> ใช้เวลาท้องถิ่นรูปแบบชั่วโมง นาที วินาทีเพื่อให้คนอ่านได้สะดวก สองอย่างนี้มีหน้าที่ต่างกัน <a href="https://man7.org/linux/man-pages/man3/clock_gettime.3.html">Linux man-pages clock_gettime</a></p>
+<p><code>log_line()</code> รับอาร์กิวเมนต์แบบ variadic ผ่าน va_list จัดข้อความด้วย vsnprintf แล้วเพิ่มเวลาและ PID ก่อนเขียนไฟล์ ช่วยให้แต่ละ process ใช้รูปแบบบันทึกเดียวกัน <code>setvbuf()</code> ใน main ปิด stdout buffering เพื่อลดปัญหาข้อความใน buffer ถูกสำเนาไปกับ fork แล้วถูกพิมพ์ซ้ำภายหลัง</p>
+<h3 id="section-9-2">9.2 Producer</h3>
+<p><code>run_producer()</code> ตั้ง seed ของ rand จาก PID XOR เวลาปัจจุบัน จากนั้นสร้าง Job จำนวน 5 ชิ้นด้วยรหัสและชื่อไฟล์ที่สัมพันธ์กับ Producer สุ่ม Priority 1–5 และหน้า 1–8 เรียก enqueue แล้วเขียน log หลังส่งสำเร็จ ก่อนพัก 100–499 ms ทุกครั้ง รวมหลังส่งงานชิ้นสุดท้าย จากนั้น exit</p>
+<p>การพักหลังงานสุดท้ายทำให้ Parent ยังต้องรอ Producer แม้มันส่งครบแล้ว จึงมีผลต่อเวลาส่ง SHUTDOWN และเวลารวมเมื่อคิวระบายเร็วกว่าการจบ Producer</p>
+<h3 id="section-9-3">9.3 Printer และการส่งค่ากลับจาก dequeue</h3>
+<p><code>run_printer()</code> วนเรียก dequeue ซึ่งคืน Job และเขียน effective กับเวลารอผ่านพอยน์เตอร์ <code>out_eff</code> และ <code>out_wait</code> ทำให้ผู้เรียกได้ทั้งงานและค่าที่ใช้ตัดสิน ณ เวลานั้นโดยไม่ต้องคำนวณซ้ำภายหลัง</p>
+<p>หาก ID เป็น −1 จะเขียน log แล้วออกจาก loop หากเป็นงานจริงจะเขียน log เริ่มพิมพ์ เรียก record_stats พักเวลา <code>pages * 200 ms</code> และเขียน log พิมพ์เสร็จ การพิมพ์และ logging ไม่ครอบด้วย queue mutex</p>
+<h3 id="section-9-4">9.4 การบันทึกและอ่านสถิติ</h3>
+<p><code>record_stats()</code> จับ stats_lock ก่อนเพิ่มจำนวนงาน รวมเวลารอ อัปเดตค่าสูงสุด ตรวจว่า effective ต่ำกว่า Priority เดิมหรือไม่ และเพิ่มอาร์เรย์ตาม Priority กับเครื่องพิมพ์ จากนั้นคืน lock</p>
+<p><code>print_report()</code> เรียกหลังรอ Printer ทุกตัวจบ จึงอ่าน Stats ได้โดยไม่มี Printer มาแก้ค่าแข่งอีก แสดงจำนวนงาน เวลารวม ค่าเฉลี่ย ค่าสูงสุด จำนวนงานที่ได้รับ Aging สถิติราย Priority และจำนวนงานกับหน้าของแต่ละเครื่อง</p>
+<h2 id="chapter-10">10 สถิติ เวลา และบันทึกเหตุการณ์</h2>
+<h3 id="section-10-1">10.1 ความหมายของเวลารอ</h3>
+<p>เวลารอที่เก็บคือเวลาปัจจุบันที่ dequeue ใช้เลือก ลบด้วย enqueue_ms ซึ่งประทับหลัง Producer ได้ช่องว่างและ mutex แล้ว เวลานี้จึงวัดการรอในคิว ไม่รวมการรอ empty_slots ก่อนเข้าคิว และไม่รวมเวลาพิมพ์ ส่วนงานจริงใน C ยังมีต้นทุนการสแกน การเขียน log และขั้นตอนก่อน usleep เพิ่มจากจุดประทับเวลานั้น</p>
+<pre><code class="language-text">เวลารอเฉลี่ย = เวลารอรวมของงานที่บันทึก / จำนวนงานที่บันทึก
+เวลาพิมพ์จำลอง = จำนวนหน้า * 200 ms
+เวลารวม = เวลาหลังรอ Printer ครบ - เวลาก่อนเริ่ม fork
+</code></pre>
+<p>เวลารวมเป็นระยะเวลาที่ระบบทำงานผ่านไป ไม่ใช่ CPU time รวมการสร้างลูก ช่วงมาถึงงาน การรอ การเขียน log การพักจำลองพิมพ์ และช่วงปิดระบบ ไม่รวมการเตรียม shared memory ก่อนจับเวลา และไม่รวมการแสดงรายงานกับ cleanup หลังจับเวลาสิ้นสุด</p>
+<h3 id="section-10-2">10.2 การอ่านสถิติอย่างถูกต้อง</h3>
+<p>กราฟราย Priority จัดกลุ่มด้วย Priority เดิม แม้งาน P5 ได้ effective 1 ก็ยังอยู่กลุ่ม P5 ตัวเลขค่าเฉลี่ยระหว่างรันคิดเฉพาะงานที่ Printer รับไปเริ่มแล้ว จึงเป็นผลสะสมที่ยังเปลี่ยนได้</p>
+<p><code>aged_jobs</code> เพิ่มเมื่อ effective ต่ำกว่า Priority เดิม ณ ตอนเริ่มพิมพ์ เป็นจำนวนงานที่ค่าความสำคัญถูกปรับด้วย Aging ไม่ใช่จำนวนครั้งที่ปรับ และไม่พิสูจน์ว่างานนั้นรอเร็วขึ้นเมื่อเทียบกับการปิด Aging แม้งานเดียวในคิวก็อาจถูกนับได้</p>
+<p>สถิติจำนวนงานแต่ละ Printer ไม่จำเป็นต้องเท่ากัน งานมีจำนวนหน้าต่างกันและเครื่องว่างต่างเวลา จึงควรดูทั้งจำนวนงาน จำนวนหน้า และเวลารวม ไม่สรุปประสิทธิภาพจากจำนวนงานอย่างเดียว</p>
+<h3 id="section-10-3">10.3 ข้อจำกัดของ log</h3>
+<p>Producer เขียน log หลัง enqueue ปล่อย mutex และแจ้ง filled_slots แล้ว Printer จึงอาจรับงานและเขียน log เริ่มพิมพ์ก่อน Producer เขียน log ส่งงานของชิ้นเดียวกันได้ ลำดับบรรทัดที่เห็นจึงไม่ใช่หลักฐานลำดับเข้าคิวที่แม่นยำเสมอ</p>
+<p>การเปิดไฟล์ด้วย O_APPEND ทำให้การเลื่อนไปท้ายไฟล์และการ write เป็นขั้นตอน atomic ตามเงื่อนไขของระบบ แต่ไม่รับประกันลำดับเหตุการณ์ระหว่าง process ไม่รับประกัน stdout จะเรียงตรงกับไฟล์ และไม่แทนการตรวจ partial write หรือ error โดยเฉพาะบน filesystem ที่มีข้อจำกัด เช่น NFS <a href="https://man7.org/linux/man-pages/man2/open.2.html">Linux man-pages open</a>, <a href="https://man7.org/linux/man-pages/man2/write.2.html">write</a></p>
+<h2 id="chapter-11">11 การปิดระบบและคืนทรัพยากร</h2>
+<p>Parent รอ Producer ทุกตัวจบก่อน จึงทราบว่าจะไม่มีงานจริงใหม่จาก Producer จากนั้นส่งงานพิเศษ SHUTDOWN จำนวนเท่ากับ Printer แต่ละตัวรับหนึ่งรายการแล้วออกจาก loop หากส่งเพียงรายการเดียวเมื่อมีหลาย Printer บางเครื่องอาจค้างรอ filled_slots ต่อไป</p>
+<p>sentinel มี ID −1, Priority −1, หน้า 0 และชื่อ SHUTDOWN แต่ <code>effective_priority()</code> ตรวจ ID แล้วคืน INT_MAX ให้ทันที ทำให้มันถูกเลือกหลังงานจริงในคิวและไม่ได้รับ Aging เว็บใช้ Infinity เพื่อให้ผลเปรียบเทียบแบบเดียวกัน</p>
+<p>Printer หนึ่งตัวอาจหยุดแล้วขณะที่อีกตัวกำลังพิมพ์งานจริงที่ดึงออกจากคิวไปก่อนหน้า การที่คิวไม่มีงานจริงเหลือจึงไม่แปลว่าทุกเครื่องพิมพ์เสร็จ Parent ต้องรอ Printer ทุกตัวจบก่อนอ่านผลสุดท้ายและคืนทรัพยากร</p>
+<p>หลังจบ โปรแกรมทำลาย semaphore ทั้ง 4 ตัว เรียก munmap และ shm_unlink การ unlink ลบชื่อของวัตถุ ส่วนอายุของพื้นที่จริงขึ้นกับการใช้งานและ mapping ที่ยังเหลืออยู่ การคืนทรัพยากรหลังลูกจบช่วยไม่ให้ทำลาย semaphore ขณะที่ลูกยังใช้อยู่ <a href="https://man7.org/linux/man-pages/man3/shm_open.3.html">Linux man-pages shm_open</a></p>
+<h2 id="chapter-12">12 สถาปัตยกรรมและการใช้เว็บจำลอง</h2>
+<h3 id="section-12-1">12.1 ส่วนประกอบของเว็บ</h3>
+<p>เว็บใช้ HTML, JavaScript ES modules และ Tailwind CSS 4 รูปแบบหน้าตาปรับจาก Cruip Simple Light แต่ runtime ปัจจุบันไม่ได้ใช้ React หรือ Next.js ส่วนเนื้อหาและกลไกจำลองเป็นของโครงการนี้</p>
+<div class="table-scroll" tabindex="0"><table><caption>ตารางที่ 7 ไฟล์สำคัญของเว็บ</caption>
+<thead>
+<tr>
+<th>ไฟล์</th>
+<th>หน้าที่</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>server.mjs</code></td>
+<td>HTTP server มาตรฐาน Node.js สำหรับส่งไฟล์จาก dist</td>
+</tr>
+<tr>
+<td><code>dist/index.html</code></td>
+<td>โครงหน้า ตัวควบคุม และส่วนแสดงผล</td>
+</tr>
+<tr>
+<td><code>dist/engine.mjs</code></td>
+<td>กติกาจำลอง เวลา คิว Producer Printer และสถิติ</td>
+</tr>
+<tr>
+<td><code>dist/app.mjs</code></td>
+<td>เชื่อม engine กับปุ่ม วาดข้อมูล และควบคุม autoplay</td>
+</tr>
+<tr>
+<td><code>dist/guide.mjs</code></td>
+<td>บทอธิบายและส่วนสำรวจโค้ด C</td>
+</tr>
+<tr>
+<td><code>src/styles.css</code></td>
+<td>รูปแบบหน้าตาและ responsive layout ที่แก้ไขได้</td>
+</tr>
+<tr>
+<td><code>dist/styles.css</code></td>
+<td>CSS ที่คอมไพล์แล้วสำหรับให้เบราว์เซอร์ใช้</td>
+</tr>
+<tr>
+<td><code>tests/engine.test.mjs</code></td>
+<td>Unit test ของแบบจำลอง JavaScript</td>
+</tr>
+<tr>
+<td><code>tests/priority_c_test.c</code></td>
+<td>ชุดทดสอบฟังก์ชันจากโค้ด C</td>
+</tr>
+<tr>
+<td><code>package.json</code></td>
+<td>คำสั่งรัน build watch test และ check</td>
+</tr>
+</tbody></table></div>
+<p>server ส่งไฟล์อย่างเดียว ไม่ได้เป็นผู้ประมวลผลคิว แบบจำลองอยู่ในเบราว์เซอร์ engine แยกจาก DOM จึงทดสอบกติกาโดยไม่ต้องเปิดหน้าเว็บได้</p>
+<h3 id="section-12-2">12.2 เวลาและฟังก์ชันของ engine</h3>
+<p>Spooler constructor เตรียมข้อมูลด้วย seed 42 จึงเริ่มใหม่แล้วได้งานชุดเดิม ต่างจาก C ที่สุ่มจาก PID และเวลา engine เก็บคิว logs งานที่เริ่มพิมพ์ งานที่เสร็จ Producer Printer และสถานะปิดระบบ</p>
+<p><code>settle()</code> ประมวลผลงานที่พิมพ์เสร็จ Producer ที่พร้อมส่ง การส่ง sentinel เมื่อ Producer จบครบ และการเลือกงานของ Printer ตามลำดับที่กำหนด วนจนไม่มีการเปลี่ยนแปลงที่ทำต่อได้ ณ เวลานั้น</p>
+<p><code>nextTime()</code> หาเวลาถัดไปที่ Printer จะเสร็จหรือ Producer ที่ไม่ได้ถูกบล็อกจะพร้อม <code>step()</code> ข้ามไปเวลานั้นและประมวลผลเหตุการณ์ ส่วน <code>advance(ms)</code> ทำทุกเหตุการณ์จนถึงเวลาปลายทางสำหรับ autoplay หนึ่งขั้นจึงอาจมีหลายเหตุการณ์ และไม่ได้หมายถึงการเพิ่มเวลาทีละ 1 ms</p>
+<p><code>effective()</code> คำนวณ Aging, <code>olderThan()</code> เปรียบเทียบเวลาและ sequence, <code>bestIndex()</code> เลือกงาน, <code>arrivalOrder()</code> จัดภาพตามการเข้าคิว และ <code>selectionOrder()</code> จัดอันดับเลือก ณ เวลาปัจจุบันบนสำเนาคิว ส่วน getter <code>stats</code> ซึ่งอ่านผ่าน <code>sim.stats</code> สรุปข้อมูลจากงานที่เริ่มและเสร็จ</p>
+<p>การเล่นอัตโนมัติใช้ requestAnimationFrame แปลงเวลาจริงเป็นเวลาจำลอง จำกัดช่วงต่อเฟรมไม่เกิน 250 ms ก่อนคูณความเร็ว และวาดหน้าประมาณทุก 80 ms เมื่อแท็บอยู่เบื้องหลัง เบราว์เซอร์อาจลดการให้เฟรม ทำให้การเล่นช้าลงได้ ความเร็วการเล่นไม่เปลี่ยนกติกาหรือระยะเวลาจำลองของแต่ละเหตุการณ์</p>
+<h3 id="section-12-3">12.3 วิธีอ่านหน้าห้องทดลอง</h3>
+<ul>
+<li>เลือก Printer 1–4 ตัว และเปิดหรือปิด Aging ก่อนเริ่ม เมื่อเริ่มแล้วสองค่านี้ถูกล็อกไว้สำหรับรอบนั้น</li>
+<li>เริ่มจำลองและเล่นต่อทำให้เวลาเดิน หยุดชั่วคราวเก็บสถานะเดิม ส่วนทีละขั้นขยับถึงเหตุการณ์ถัดไป</li>
+<li>Reset สร้าง Spooler ใหม่ด้วย seed เดิมและล้างผลรอบก่อน จึงควรจดค่าที่ต้องเปรียบเทียบ</li>
+<li>แถวลำดับเข้าคิวบอกว่างานที่ยังรอเข้ามาก่อนหลังอย่างไร ตารางเลือกพิมพ์บอกอันดับตามกติกาตอนนี้</li>
+<li>สีน้ำเงินใช้กับงานปกติ สีส้มแสดงงานที่ effective ลดลงจาก Aging ส่วน STOP เป็น sentinel</li>
+<li>ป้าย P1–P4 บนกล่อง Producer หมายถึงหมายเลข Producer ต้องแยกจาก P1–P5 ที่ใช้เรียก Priority ของงาน</li>
+<li>งานเสร็จบนเว็บนับจาก completed จริง ส่วนค่าเฉลี่ยเวลารอ ค่าสูงสุด และ Aging นับจากงานที่เริ่มพิมพ์แล้ว</li>
+<li>Semaphore monitor แสดงภาพหลังเหตุการณ์ ค่า mutex และ stats_lock จึงแสดง 1 ไม่ได้หมายถึงไม่มีการล็อกในโปรแกรม C</li>
+</ul>
+<p>เว็บรองรับ WebMCP แบบ optional สำหรับอ่านสถานะและเดินทีละขั้น หากไม่มี API นี้ ปุ่มและตัวจำลองหลักยังใช้งานได้ตามปกติ</p>
+<h3 id="section-12-4">12.4 ความเหมือนและความต่างจาก C</h3>
+<p>ทั้งสองใช้ความจุ จำนวนงาน กติกา Priority/Aging, FIFO ด้วย sequence, เวลาพิมพ์ต่อหน้า การบล็อกคิว และ sentinel แบบเดียวกัน แต่เว็บไม่เรียก fork, mmap หรือ semaphore จริง เหตุการณ์พร้อมกันถูกประมวลผลตามลำดับที่กำหนดไว้ จึงไม่ครอบคลุมทุก interleaving ของระบบปฏิบัติการ</p>
+<p>ผลเว็บเหมาะกับการศึกษากติกาและเปรียบเทียบการตั้งค่าด้วยงานชุดเดิม ไม่ใช่ benchmark ของ Linux และไม่จำเป็นต้องได้ตัวเลขตรงกับ C ที่มีการสุ่มและต้นทุนระบบจริง</p>
+<h2 id="chapter-13">13 วิธีรันและแผนสาธิต</h2>
+<h3 id="section-13-1">13.1 รันเว็บ</h3>
+<p>ใช้ Node.js แล้วเปิด Terminal ในโฟลเดอร์ที่มี package.json</p>
+<pre><code class="language-powershell">npm.cmd start
+</code></pre>
+<p>เปิด <code>http://127.0.0.1:4173</code> หากไม่ได้แก้ CSS สามารถใช้ dist/styles.css ที่เตรียมไว้ได้ หากจะพัฒนาหน้าตาให้ติดตั้งแพ็กเกจตาม lockfile และ build ใหม่</p>
+<pre><code class="language-powershell">npm.cmd ci
+npm.cmd run build
+npm.cmd run dev:css
+</code></pre>
+<p>คำสั่ง dev:css ใช้เฝ้าดูการแก้ CSS ควรเปิดอีก Terminal สำหรับ npm start และกด Ctrl+C เมื่อจะหยุดแต่ละคำสั่ง</p>
+<h3 id="section-13-2">13.2 คอมไพล์และรัน C</h3>
+<p>ใช้ Linux หรือ WSL ที่มี GCC และรองรับ POSIX shared memory กับ process-shared semaphore โดยรันจากรากโปรเจกต์</p>
+<pre><code class="language-bash">gcc -std=c11 -Wall -Wextra -o spooler_v2 dist/print_spooler_v2.c -pthread -lrt
+./spooler_v2
+./spooler_v2 2 1
+./spooler_v2 1 0
+</code></pre>
+<p>อาร์กิวเมนต์ตัวแรกคือจำนวน Printer ตัวที่สองคือ Aging ตามรูปแบบที่แนะนำ 0 หรือ 1 โค้ดตรวจช่วง Printer แต่ยังใช้ atoi และแปลง Aging ที่ไม่เป็นศูนย์ให้เป็นเปิด จึงไม่ได้ตรวจรูปแบบตัวเลขและตัวเลือกอย่างเข้มงวด</p>
+<p>โปรแกรมเริ่มรอบใหม่โดยลบ log เดิมและใช้ shared-memory name คงที่ จึงควรรันทีละ instance ในพื้นที่ทดลอง ไม่ออกแบบสำหรับเปิดหลายรอบพร้อมกัน</p>
+<h3 id="section-13-3">13.3 แผนสาธิตในชั้นเรียน</h3>
+<ol>
+<li>เริ่มด้วย 1 เครื่อง เปิด Aging และอธิบาย Producer คิว และ Printer ก่อนกดทีละขั้น</li>
+<li>เลือกงานหนึ่งชิ้นแล้วตาม ID จากเหตุการณ์ส่งงาน ไปคิว ไปเครื่องพิมพ์ และเหตุการณ์พิมพ์เสร็จ</li>
+<li>ชี้ความต่างระหว่างแถวเข้าคิวกับตารางเลือกพิมพ์ และอธิบายว่า P1 เป็น Priority สำคัญสูงสุด</li>
+<li>เมื่อคิวเต็ม ชี้ Producer ที่รอช่องว่าง แล้วสังเกตว่ากลับมาส่งได้เมื่อ Printer รับงาน</li>
+<li>ดูงานรอนานที่ effective ลดลง อธิบายสูตรด้วยตัวอย่าง P5 รอ 8 วินาที</li>
+<li>รันจนจบและชี้ SHUTDOWN หนึ่งรายการต่อเครื่องพร้อมการแยกงานเริ่มและงานเสร็จ</li>
+<li>Reset แล้วปิด Aging ด้วยงานชุดเดิม เปรียบเทียบตัวเลขและลำดับงาน</li>
+<li>Reset แล้วเพิ่มเครื่อง อธิบายว่าหลายเครื่องช่วยพิมพ์พร้อมกันได้ แต่ไม่จำเป็นต้องแบ่งงานเท่ากันหรือเร็วขึ้นเป็นสัดส่วนตรง</li>
+</ol>
+<h2 id="chapter-14">14 ผลตรวจสอบและข้อจำกัด</h2>
+<h3 id="section-14-1">14.1 ผลจากเว็บที่ใช้ข้อมูลชุดเดียวกัน</h3>
+<p>รัน engine ปัจจุบันด้วย seed 42 ทั้ง 8 การตั้งค่า ทุกกรณีจบครบ 20 งาน รวม 100 หน้า ตารางแสดงเวลาจำลอง ไม่ใช่เวลาที่ใช้เปิดเบราว์เซอร์หรือผล benchmark ของ C ค่าเฉลี่ยปัดทศนิยม 4 ตำแหน่ง</p>
+<div class="table-scroll" tabindex="0"><table><caption>ตารางที่ 8 ผลการทดลองแบบจำลอง</caption>
+<thead>
+<tr>
+<th>Printer</th>
+<th>Aging</th>
+<th>เวลารวมวินาที</th>
+<th>เวลารอเฉลี่ยวินาที</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>ปิด</td>
+<td>20.000</td>
+<td>6.3921</td>
+</tr>
+<tr>
+<td>1</td>
+<td>เปิด</td>
+<td>20.000</td>
+<td>6.2821</td>
+</tr>
+<tr>
+<td>2</td>
+<td>ปิด</td>
+<td>10.000</td>
+<td>2.9021</td>
+</tr>
+<tr>
+<td>2</td>
+<td>เปิด</td>
+<td>10.000</td>
+<td>2.8521</td>
+</tr>
+<tr>
+<td>3</td>
+<td>ปิด</td>
+<td>7.000</td>
+<td>1.6742</td>
+</tr>
+<tr>
+<td>3</td>
+<td>เปิด</td>
+<td>7.200</td>
+<td>1.6642</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ปิด</td>
+<td>5.400</td>
+<td>1.0209</td>
+</tr>
+<tr>
+<td>4</td>
+<td>เปิด</td>
+<td>5.330</td>
+<td>1.0309</td>
+</tr>
+</tbody></table></div>
+<p>กรณี 4 เครื่อง เปิด Aging แล้วเวลารอเฉลี่ยเพิ่ม 0.0100 วินาที แม้เวลารวมลด 0.070 วินาที เป็นตัวอย่างว่าเวลารวมกับค่าเฉลี่ยเวลารอวัดคนละเรื่อง และ Aging ไม่ได้รับประกันว่าทุกค่าจะดีขึ้นพร้อมกัน จากตัวอย่างหนึ่งชุดยังสรุปแทนทุก workload ไม่ได้</p>
+<h3 id="section-14-2">14.2 สถานะชุดทดสอบวันที่จัดทำรายงาน</h3>
+<p>การตรวจ syntax ของ app.mjs, engine.mjs และ guide.mjs ผ่าน ส่วน unit test ของ JavaScript มี 19 กรณี ผ่าน 17 และไม่ผ่าน 2 กรณีที่ยังคาดหวังลำดับจากกติกาก่อนเพิ่ม FIFO sequence</p>
+<p>กรณีแรกคาดหวังคิวที่เวลา 400 ms ว่ายังมี #300 แต่โค้ดล่าสุดเลือก #300 ไปพิมพ์ก่อนตาม FIFO จึงเหลือ #400 อีกกรณีคาดหวังลำดับงานที่ Priority กับเวลาเท่ากันเป็น <code>[11,33,22]</code> ตามตำแหน่งหลัง swap-last แต่โค้ดปัจจุบันใช้ sequence จึงได้ <code>[11,22,33]</code> ต้องปรับ expected ให้ตรงข้อกำหนดล่าสุดก่อนอ้างว่าชุดทดสอบผ่านทั้งหมด</p>
+<p>ไฟล์ C harness มี 7 กลุ่มทดสอบ แต่ไม่ได้คอมไพล์และรันใหม่ในการตรวจรอบนี้ จึงยังไม่ยืนยันผลของ harness กับ C รุ่นที่เพิ่ม sequence และควรเพิ่มกรณีทดสอบ sequence ต่างกันแต่เวลาเท่ากันโดยตรงด้วย เอกสารบนเว็บและ README บางข้อความยังอธิบายข้อจำกัด FIFO แบบเดิม จึงควรปรับให้ตรงกับซอร์สล่าสุด</p>
+<p>ชุดทดสอบเดิมครอบคลุมขอบเขต Aging ที่ 1999 และ 2000 ms, ค่าติดลบ, sentinel หลังงานจริง, คิวไม่เกิน 10, งานจริง 20 ชิ้นไม่ซ้ำ, การเล่นกับทีละขั้นให้ผลเหมือนกัน และหลาย Printer ที่บางตัวหยุดขณะอีกตัวพิมพ์งานสุดท้ายแล้ว งานที่ยังต้องทำคือปรับ expected สองกรณีให้ตรง FIFO ล่าสุด และเพิ่ม C test ที่ตรวจ sequence ต่างกันแต่เวลาเข้าคิวเท่ากันโดยตรง</p>
+<h3 id="section-14-3">14.3 ข้อจำกัดทางวิศวกรรมของ C</h3>
+<p>โปรแกรมเหมาะกับงานสาธิต ยังมีการตรวจความผิดพลาดไม่ครบ เช่น sem_init, sem_wait, sem_post และ waitpid ไม่ได้ตรวจผลทุกครั้ง หาก sem_wait ถูก interrupt แล้วเดินต่อโดยไม่ได้สิทธิ์ ความถูกต้องของคิวอาจเสียได้ ควรจัดการ EINTR และ error ตามสัญญาของ API <a href="https://man7.org/linux/man-pages/man3/sem_wait.3.html">Linux man-pages sem_wait</a></p>
+<p>Parent ไม่อ่าน exit status ลูกอย่างละเอียด ไม่มี cleanup/recovery ครบเมื่อ fork ล้มเหลวหรือ process ตายขณะถือ semaphore และใช้ชื่อ shared memory กับ log คงที่ การพัฒนาต่อควรแยกทรัพยากรต่อ instance จัดการ partial write และแยกตัวนับ started/completed ให้ตรงจังหวะจริง</p>
+<p>usleep ใช้จำลองเวลา ไม่ใช่การรับประกัน deadline การพักอาจนานกว่าที่ขอหรือถูก interrupt และ API นี้มีข้อจำกัดด้านความพกพา โดยบางระบบไม่รับค่าตั้งแต่หนึ่งล้านไมโครวินาที ขณะที่งาน 5–8 หน้าของโครงการขอพักตั้งแต่ค่านั้นขึ้นไป ควรพิจารณา nanosleep พร้อมจัดการเวลาที่เหลือเมื่อพัฒนาต่อ <a href="https://man7.org/linux/man-pages/man3/usleep.3.html">Linux man-pages usleep</a></p>
+<h2 id="chapter-15">15 คำถามที่อาจารย์อาจถามพร้อมแนวคำตอบ</h2>
+<h3 id="section-15-1">15.1 ภาพรวมและโครงสร้าง</h3>
+<h4 class="question" id="question-1">ข้อ 1 โปรแกรมนี้แก้ปัญหาอะไร</h4>
+<p>จำลอง Producer–Consumer ที่ผู้ส่งหลายตัวและผู้รับหลายตัวใช้คิวจำกัดร่วมกัน ต้องป้องกันการแก้ข้อมูลชนกัน ควบคุมคิวเต็ม/ว่าง และเลือกงานตามความสำคัญ</p>
+<h4 class="question" id="question-2">ข้อ 2 โปรแกรมพิมพ์ไฟล์จริงหรือไม่</h4>
+<p>ไม่ได้พิมพ์จริง ชื่อไฟล์เป็นข้อมูลประกอบงาน การพิมพ์จำลองด้วย usleep ตามจำนวนหน้า ส่วนเว็บใช้เวลาจำลองใน JavaScript</p>
+<h4 class="question" id="question-3">ข้อ 3 มีกี่ process และใช้ thread หรือไม่</h4>
+<p>มี Parent 1, Producer 4 และ Printer 1–4 รวม 6–9 process เมื่อ fork สำเร็จทั้งหมด ไม่มี pthread_create ในโค้ดนี้</p>
+<h4 class="question" id="question-4">ข้อ 4 ทำไมตัวแปรธรรมดาหลัง fork จึงใช้แทน shared memory ไม่ได้</h4>
+<p>แต่ละ process มี address space ของตนเอง โปรแกรมจึงสร้าง MAP_SHARED ก่อน fork เพื่อให้ลูกเข้าถึงวัตถุร่วมเดียวกัน ไม่อาศัยการแก้สำเนาตัวแปรธรรมดา</p>
+<h4 class="question" id="question-5">ข้อ 5 close หลัง mmap ทำให้ข้อมูลร่วมใช้ไม่ได้หรือไม่</h4>
+<p>ไม่ทำให้ mapping หาย descriptor ใช้สร้าง mapping แล้วปิดได้ แต่ mapping ยังอยู่จนยกเลิกด้วย munmap หรือ process จบ</p>
+<h4 class="question" id="question-6">ข้อ 6 ทำไม sem_init ต้องส่ง pshared เป็น 1</h4>
+<p>เพราะ semaphore ถูกใช้ข้าม process และอยู่ใน shared memory ค่า 0 ใช้สำหรับ thread ภายใน process เดียว ไม่ตรงกับรูปแบบนี้</p>
+<h3 id="section-15-2">15.2 คิวและการประสานงาน</h3>
+<h4 class="question" id="question-7">ข้อ 7 ทำไมใช้ semaphore ถึง 4 ตัว</h4>
+<p>แต่ละตัวคุมคนละเรื่อง mutex คุมข้อมูลคิว empty_slots คุมสิทธิ์เพิ่ม filled_slots คุมสิทธิ์นำออก และ stats_lock คุมสถิติร่วม</p>
+<h4 class="question" id="question-8">ข้อ 8 ใช้ mutex อย่างเดียวพอหรือไม่</h4>
+<p>mutex ป้องกันการแก้พร้อมกัน แต่ไม่ได้บอกว่าคิวเต็มหรือว่าง จึงยังต้องมีกลไกรอเงื่อนไข empty_slots และ filled_slots แทนการวนตรวจคิวตลอดเวลา</p>
+<h4 class="question" id="question-9">ข้อ 9 ถ้าจับ mutex ก่อนรอ empty_slots จะเกิดอะไร</h4>
+<p>ขณะคิวเต็ม Producer จะถือ mutex รอช่องว่าง แต่ Printer ต้องได้ mutex เพื่อเอางานออก จึงเกิดการรอกันเป็น deadlock ได้</p>
+<h4 class="question" id="question-10">ข้อ 10 คิวเต็มแล้วงานหายหรือไม่</h4>
+<p>ในการทำงานปกติ Producer รอ empty_slots จนมีช่องคืน ไม่ได้เขียนทับหรือทิ้งงาน เว็บแสดงสถานะ Producer รอช่องว่างเพื่อสื่อพฤติกรรมนี้</p>
+<h4 class="question" id="question-11">ข้อ 11 เหตุใดหลาย Printer จึงพิมพ์พร้อมกันได้ทั้งที่ใช้ mutex เดียว</h4>
+<p>mutex ครอบเฉพาะการนำงานออกจากคิว Printer ปล่อย mutex ก่อนพิมพ์ จึงทำงานคนละชิ้นพร้อมกันได้โดยยังแก้คิวทีละตัว</p>
+<h4 class="question" id="question-12">ข้อ 12 ทำไมงานที่มาทีหลังอยู่หน้ากว่าในอาร์เรย์ได้</h4>
+<p>dequeue นำงานท้ายมาแทนช่องของงานที่เลือกออก เพื่อลบโดยไม่เลื่อนทั้งอาร์เรย์ ตำแหน่งเก็บจึงไม่เรียงตามเวลามา แต่การเลือกยังใช้ Priority เวลา และ sequence</p>
+<h4 class="question" id="question-13">ข้อ 13 ถ้าเวลาเข้าคิวเท่ากันยังเป็น FIFO จริงหรือไม่</h4>
+<p>ซอร์สล่าสุดใช้ enqueue_seq ที่เพิ่มใต้ mutex เป็นตัวตัดสินเมื่อ effective และเวลาเท่ากัน จึงเลือกตามลำดับเข้าคิวสำเร็จ แม้ตำแหน่งอาร์เรย์จะถูกสลับ</p>
+<h4 class="question" id="question-14">ข้อ 14 เหตุใด empty_slots บวก filled_slots จึงไม่จำเป็นต้องเท่ากับ 10 ทุกขณะ</h4>
+<p>ระหว่าง operation อาจจอง token แล้วแต่ยังไม่ปรับ count หรือยังไม่ post อีก semaphore ความสัมพันธ์จึงต้องพิจารณาช่วงที่ระบบไม่มี operation ค้าง เว็บแสดงค่าหลังเหตุการณ์ ไม่ใช่ทุกจังหวะภายใน C</p>
+<h3 id="section-15-3">15.3 Priority และ Aging</h3>
+<h4 class="question" id="question-15">ข้อ 15 P1 หรือ P5 สำคัญกว่า</h4>
+<p>P1 สำคัญกว่าในระดับเดิม โครงการเลือกตัวเลข effective ที่น้อยที่สุด ไม่ได้เลือกเลขมากที่สุด</p>
+<h4 class="question" id="question-16">ข้อ 16 P5 รอ 6 วินาทีมี Priority เท่าไร</h4>
+<p>Priority เดิมยังเป็น 5 ส่วน effective เป็น <code>5 - floor(6000/2000) = 2</code> และสถิติราย Priority ยังนับในกลุ่ม P5</p>
+<h4 class="question" id="question-17">ข้อ 17 effective ติดลบถือว่าเป็น bug หรือไม่</h4>
+<p>ไม่ใช่ โค้ดไม่ได้จำกัดค่าต่ำสุด เช่น P1 รอ 4 วินาทีได้ −1 งานยังเป็นงานจริง เพราะตรวจ sentinel ด้วย ID ไม่ใช่ effective</p>
+<h4 class="question" id="question-18">ข้อ 18 ทำไมไม่ sort คิวครั้งเดียวตอน enqueue</h4>
+<p>ค่าหลัง Aging เปลี่ยนตามเวลารอ จึงคำนวณใหม่ตอนเลือก การสแกน O(n) เหมาะกับคิวที่มีงานไม่เกิน 10 ชิ้น</p>
+<h4 class="question" id="question-19">ข้อ 19 งาน P1 ที่เพิ่งเข้าจะแทรกงานที่กำลังพิมพ์หรือไม่</h4>
+<p>ไม่แทรก ระบบเป็น non-preemptive เครื่องทำงานชิ้นเดิมจนจบ แล้วจึงเลือกใหม่จากงานที่รออยู่</p>
+<h4 class="question" id="question-20">ข้อ 20 ทำไมบางรอบ P5 มีเวลารอเฉลี่ยน้อยกว่า P1</h4>
+<p>Priority กำหนดการเลือกจากงานที่มีอยู่ตอนเครื่องว่าง ไม่ได้รับประกันอันดับค่าเฉลี่ยทั้งรอบ งานอาจเข้าคนละเวลา ใช้หลายเครื่อง และได้รับ Aging ต่างกัน ต้องดู workload กับสถานะเครื่องประกอบ</p>
+<h4 class="question" id="question-21">ข้อ 21 เปิด Aging แล้วเวลารอเฉลี่ยต้องลดลงหรือไม่</h4>
+<p>ไม่จำเป็น เป้าหมายคือเพิ่มโอกาสให้งานรอนาน ตัวอย่าง seed42 และ 4 เครื่องในรายงาน เปิด Aging แล้วค่าเฉลี่ยเพิ่ม 10 ms แม้เวลารวมลดลง</p>
+<h4 class="question" id="question-22">ข้อ 22 โครงการนี้พิสูจน์ว่าไม่มี starvation แล้วหรือยัง</h4>
+<p>ยังไม่ใช่ข้อพิสูจน์สำหรับระบบที่มีงานใหม่เข้าตลอดไป โครงการมีงานจำกัด 20 ชิ้นและเวลาพิมพ์จำกัด จึงจบได้ในการทำงานปกติแม้ปิด Aging การสาธิตแสดงกลไกเพิ่มโอกาสของงานเก่า</p>
+<h3 id="section-15-4">15.4 สถิติและการปิดระบบ</h3>
+<h4 class="question" id="question-23">ข้อ 23 jobs_done ของ C นับพิมพ์เสร็จจริงเมื่อไร</h4>
+<p>โค้ดเพิ่มตอน record_stats ก่อน usleep จึงนับงานเริ่มพิมพ์ระหว่างรัน หลัง wait Printer จบครบในการจบปกติจึงเท่ากับงานเสร็จ เว็บแยก started และ completed เพื่อแสดงสถานะสดให้ชัด</p>
+<h4 class="question" id="question-24">ข้อ 24 เวลารอรวมเวลาที่ Producer รอคิวเต็มหรือเวลาพิมพ์หรือไม่</h4>
+<p>ไม่รวมทั้งสองอย่าง enqueue_ms ประทับหลังได้ช่องและ mutex แล้ว และเวลารอสิ้นสุดที่จุดจับเวลาเลือกงานออกจากคิว เวลาพิมพ์เป็นอีกช่วงหนึ่ง</p>
+<h4 class="question" id="question-25">ข้อ 25 aged_jobs แปลว่าได้พิมพ์เร็วขึ้นจริงกี่งานหรือไม่</h4>
+<p>ตัวนับบอกจำนวนงานที่ effective ต่ำกว่า Priority เดิมตอนเริ่มพิมพ์เท่านั้น การยืนยันว่าเร็วขึ้นต้องเปรียบเทียบงานชุดเดียวกันกับโหมดปิด Aging</p>
+<h4 class="question" id="question-26">ข้อ 26 ทำไมบางครั้ง log เริ่มพิมพ์มาก่อน log ส่งงาน</h4>
+<p>enqueue ปล่อยให้ Printer รับงานได้ก่อน Producer เรียก log จึงเป็นผลจาก scheduling และตำแหน่ง logging ไม่ใช่หลักฐานว่างานยังไม่เข้าคิวแล้วถูกพิมพ์</p>
+<h4 class="question" id="question-27">ข้อ 27 ทำไมต้องส่ง SHUTDOWN เท่าจำนวน Printer</h4>
+<p>แต่ละเครื่องรับหนึ่งรายการแล้วจบ ถ้าส่งไม่ครบ บางเครื่องอาจรอ filled_slots ตลอดไป Parent จึงส่งหนึ่งรายการต่อเครื่องหลัง Producer จบครบ</p>
+<h4 class="question" id="question-28">ข้อ 28 ทำไม sentinel ใช้ INT_MAX และยังต้องตรวจ ID</h4>
+<p>INT_MAX ทำให้มันมีลำดับหลังงานจริงเมื่อเลือกค่าน้อยสุด ส่วน ID −1 ใช้แยกชนิดงานอย่างชัดเจน ไม่ปะปนกับงานจริงที่ Aging จนได้ effective −1 เว็บใช้ Infinity เพื่อเปรียบเทียบแบบเดียวกัน</p>
+<h4 class="question" id="question-29">ข้อ 29 คิวไม่มีงานจริงแล้วทำลาย shared memory ได้ทันทีหรือไม่</h4>
+<p>ยังไม่ได้ บาง Printer อาจกำลังพิมพ์งานที่ดึงออกไปแล้ว และยังต้องใช้ Stats กับ semaphore Parent จึงรอทุก Printer จบก่อนรายงานและคืนทรัพยากร</p>
+<h3 id="section-15-5">15.5 เว็บ การทดลอง และการพัฒนาต่อ</h3>
+<h4 class="question" id="question-30">ข้อ 30 เว็บเรียก fork และ semaphore จริงหรือไม่</h4>
+<p>ไม่ได้เรียก เว็บจำลองสถานะด้วย JavaScript ส่วน server ส่งไฟล์ static การทดลอง process และ POSIX จริงต้องรัน C แยกบนระบบที่รองรับ</p>
+<h4 class="question" id="question-31">ข้อ 31 กดทีละขั้นหนึ่งครั้งคือเดินเวลาเท่าไร</h4>
+<p>ข้ามไปเหตุการณ์ถัดไปตาม nextTime เช่น Producer พร้อมหรือ Printer พิมพ์เสร็จ จึงไม่มีระยะคงที่ และเหตุการณ์พร้อมกันอาจเกิดในขั้นเดียว</p>
+<h4 class="question" id="question-32">ข้อ 32 ทำไมผลเว็บกับ C ไม่จำเป็นต้องตรงกัน</h4>
+<p>เว็บใช้ seed42 และลำดับประมวลผลที่กำหนดเพื่อทำซ้ำได้ C สุ่มจาก PID/เวลาและมี OS scheduling กับต้นทุนการทำงานจริง จึงต่างทั้งชุดงานและเวลาได้</p>
+<h4 class="question" id="question-33">ข้อ 33 เพิ่ม Printer สองเท่าแล้วเร็วขึ้นสองเท่าเสมอหรือไม่</h4>
+<p>ไม่เสมอ งานมีจำนวนหน้าต่างกันและมาถึงต่างเวลา ยังมีช่วงเลือกคิวร่วมและช่วงปิดระบบ จึงต้องดูผล workload จริง ไม่สรุปจากจำนวนเครื่องอย่างเดียว</p>
+<h4 class="question" id="question-34">ข้อ 34 อธิบายรหัสงานและป้าย Producer อย่างไรไม่ให้สับสน</h4>
+<p>Job ID เช่น #103 บอก Producer1 เอกสาร index3 หรืองานที่4 ป้าย P1 บนกล่อง Producer บอกผู้สร้างหมายเลข1 ส่วน Priority P1 บอกความสำคัญเดิมสูงสุด ต้องดูบริบทและคอลัมน์ประกอบ</p>
+<h4 class="question" id="question-35">ข้อ 35 ตอนนี้กล่าวว่าชุดทดสอบผ่านทั้งหมดได้หรือไม่</h4>
+<p>ยังไม่ได้ ผลตรวจวันที่จัดทำคือ syntax ผ่าน แต่ JavaScript tests ผ่าน17จาก19 สองกรณียังใช้ expected ก่อนเปลี่ยน FIFO ควรปรับให้ตรงกติกาใหม่และรันซ้ำ รวมทั้งเพิ่ม C test สำหรับ sequence โดยตรง</p>
+<h4 class="question" id="question-36">ข้อ 36 ถ้าจะพัฒนาให้ใช้งานเชื่อถือได้มากขึ้นควรแก้อะไรก่อน</h4>
+<p>ตรวจผล API และจัดการ EINTR, ตรวจสถานะการจบของลูก, cleanup เมื่อผิดพลาด, แยก started/completed, จัดการ partial write และใช้ชื่อทรัพยากรต่อ instance รวมถึงออกแบบ recovery เมื่อ process ตายขณะถือ semaphore</p>
+<h4 class="question" id="question-37">ข้อ 37 จะออกแบบการทดลองให้เปรียบเทียบ Aging อย่างเป็นธรรมอย่างไร</h4>
+<p>ใช้ workload เดียวกันทั้ง Priority จำนวนหน้า และเวลามาถึง เปลี่ยนเฉพาะตัวแปรที่ต้องการศึกษา ทดลองหลายชุดหรือหลายครั้ง และรายงานทั้งค่าเฉลี่ย ค่าสูงสุด การกระจายราย Priority และเวลารวม โดยแยกผลแบบจำลองจากผล C จริง</p>
+<h2 id="chapter-16">16 บทสรุปและเอกสารอ้างอิง</h2>
+<p>โปรแกรมสาธิตการทำงานของหลาย process ที่ใช้คิวจำกัดร่วมกัน โดย semaphore แบ่งหน้าที่ควบคุมข้อมูลและเงื่อนไขคิว ส่วน Priority/Aging กำหนดว่างานใดจะได้พิมพ์เมื่อเครื่องว่าง ซอร์สล่าสุดรักษา FIFO ในกลุ่มที่ effective เท่ากันด้วยเวลาและ sequence และใช้ sentinel ปิด Printer ให้ครบก่อนคืนทรัพยากร</p>
+<p>การอธิบายโครงการควรยึดความหมายของข้อมูลให้ตรงกัน โดยแยก Job ID, Producer, Priority เดิม, effective, ตำแหน่งอาร์เรย์, ลำดับเข้าคิว และลำดับเลือกงาน รวมทั้งแยกงานเริ่มพิมพ์กับงานเสร็จและผลเว็บกับผลระบบปฏิบัติการจริง</p>
+<h3>ซอร์สของโครงการ</h3>
+<ul>
+<li><code>dist/print_spooler_v2.c</code> โปรแกรม C รุ่นที่มี enqueue_seq และ next_seq</li>
+<li><code>dist/engine.mjs</code>, <code>dist/app.mjs</code>, <code>dist/index.html</code> และ <code>dist/guide.mjs</code></li>
+<li><code>server.mjs</code>, <code>package.json</code>, <code>src/styles.css</code> และ <code>tests/engine.test.mjs</code></li>
+<li><code>tests/priority_c_test.c</code>, <code>README.md</code> และ <code>THIRD_PARTY_NOTICES.md</code></li>
+</ul>
+<p>SHA256 ของไฟล์ C ที่อธิบายในรายงาน</p>
+<pre><code class="language-text">8B0C45C41AA65E7F31D92587051DB542FEF727941621939D11C0710ABF8D497A
+</code></pre>
+<h3>เอกสาร API สำหรับศึกษาเพิ่มเติม</h3>
+<ol>
+<li><a href="https://man7.org/linux/man-pages/man3/shm_open.3.html">Linux man-pages shm_open และ shm_unlink</a></li>
+<li><a href="https://man7.org/linux/man-pages/man2/mmap.2.html">Linux man-pages mmap</a></li>
+<li><a href="https://man7.org/linux/man-pages/man2/fork.2.html">Linux man-pages fork</a></li>
+<li><a href="https://man7.org/linux/man-pages/man3/sem_init.3.html">Linux man-pages sem_init</a></li>
+<li><a href="https://man7.org/linux/man-pages/man3/sem_wait.3.html">Linux man-pages sem_wait</a></li>
+<li><a href="https://man7.org/linux/man-pages/man2/waitpid.2.html">Linux man-pages waitpid</a></li>
+<li><a href="https://man7.org/linux/man-pages/man3/clock_gettime.3.html">Linux man-pages clock_gettime</a></li>
+<li><a href="https://man7.org/linux/man-pages/man2/open.2.html">Linux man-pages open</a></li>
+<li><a href="https://man7.org/linux/man-pages/man2/write.2.html">Linux man-pages write</a></li>
+<li><a href="https://man7.org/linux/man-pages/man3/usleep.3.html">Linux man-pages usleep</a></li>
+</ol>
+
+    <footer>คำถามในรายงานเป็นคำถามที่คาดว่าอาจารย์อาจถามเพื่อใช้เตรียมนำเสนอ ผลตรวจสอบและคำอธิบายอ้างอิงซอร์ส ณ วันที่จัดทำรายงาน</footer>
+  </article></main>
+</body>
+</html>
