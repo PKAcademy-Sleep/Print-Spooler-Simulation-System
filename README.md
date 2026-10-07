@@ -71,6 +71,31 @@ flowchart LR
 
 ชื่อไฟล์ เช่น `user3_doc0.txt` เป็นข้อมูลประกอบงาน โปรแกรมจำลองเวลาพิมพ์โดยไม่ได้เปิดเอกสารหรือสั่งเครื่องพิมพ์จริง รหัส `#103` หมายถึง Producer 1 สร้างงานลำดับ index 3 หรืองานชิ้นที่ 4
 
+## โครงสร้างโปรเจกต์
+
+```text
+Print-Spooler-Simulation-System/
+├── README.md
+├── package.json
+├── package-lock.json
+├── server.mjs                  # เซิร์ฟเวอร์สำหรับเปิดเว็บ
+├── THIRD_PARTY_NOTICES.md      # ที่มาและสิทธิ์ของ template
+├── dist/
+│   ├── print_spooler_v2.c      # โปรแกรม C / POSIX
+│   ├── engine.mjs              # ตรรกะและเวลาจำลอง
+│   ├── app.mjs                 # ตัวควบคุมและการแสดงผล
+│   ├── guide.mjs               # บทอธิบายและหน้าอ่านโค้ด
+│   ├── index.html
+│   ├── styles.css              # CSS ที่คอมไพล์แล้ว
+│   └── images/stripes.svg
+├── src/
+│   ├── styles.css              # CSS ต้นฉบับ
+│   └── template/utility-patterns.css
+└── tests/
+    ├── engine.test.mjs
+    └── priority_c_test.c
+```
+
 ## หลักการทำงาน
 
 ### Priority Scheduling และ FIFO
@@ -204,28 +229,3 @@ gcc -Wall -Wextra -o spooler_v2 dist/print_spooler_v2.c -pthread -lrt
 ```
 
 อาร์กิวเมนต์ตัวแรกคือจำนวน Printer `1–4` ตัวที่สองคือ Aging: `1` เปิด และ `0` ปิด รันทีละคำสั่งและรอให้แต่ละรอบจบ โปรแกรมแสดงเหตุการณ์และสถิติใน Terminal พร้อมสร้าง `spooler_log.txt` ในโฟลเดอร์ที่รัน โดยเริ่ม log ใหม่ทุกครั้ง ควรรันทีละ instance เพราะใช้ชื่อ Shared Memory และ log ร่วมกัน
-
-## โครงสร้างโปรเจกต์
-
-```text
-Print-Spooler-Simulation-System/
-├── README.md
-├── package.json
-├── package-lock.json
-├── server.mjs                  # เซิร์ฟเวอร์สำหรับเปิดเว็บ
-├── THIRD_PARTY_NOTICES.md      # ที่มาและสิทธิ์ของ template
-├── dist/
-│   ├── print_spooler_v2.c      # โปรแกรม C / POSIX
-│   ├── engine.mjs              # ตรรกะและเวลาจำลอง
-│   ├── app.mjs                 # ตัวควบคุมและการแสดงผล
-│   ├── guide.mjs               # บทอธิบายและหน้าอ่านโค้ด
-│   ├── index.html
-│   ├── styles.css              # CSS ที่คอมไพล์แล้ว
-│   └── images/stripes.svg
-├── src/
-│   ├── styles.css              # CSS ต้นฉบับ
-│   └── template/utility-patterns.css
-└── tests/
-    ├── engine.test.mjs
-    └── priority_c_test.c
-```
